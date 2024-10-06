@@ -1,0 +1,20 @@
+{
+    "text_box":
+    {
+        "colours":
+        {
+             "normal_bg":"#452289",
+             "dark_bg":"#452289",
+             "normal_text":"#c5cbd8",
+             "text_shadow": "#777777",
+             "normal_border": "#DDDDDD"
+        },
+        "misc":
+        {
+            "shape": "rounded_rectangle",
+            "shape_corner_radius": "10",
+            "border_width": "2",
+            "padding": "1,0"
+        }
+    }
+}
