@@ -8,6 +8,9 @@ def draw_heightmap(screen, heightmap, tile_width, tile_height, camera_x, camera_
     
     for y, row in enumerate(heightmap.cells):
         for x, cell in enumerate(row):
+            if cell.walkable >= 4:
+                continue
+                
             height = cell.height
             left_x, left_y = cartesian_to_iso(
                 x * tile_height - offset_x, 
