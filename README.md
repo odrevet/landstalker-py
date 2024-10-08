@@ -31,13 +31,13 @@ Uage examples:
 * Load map 595
 
 ```
-python main.py -m 595
+python src/main.py -m 595
 ```
 
 * Load map 240 and set player location, enable debug
 
 ```
-python main.py -m 240 -x 380 -y 120 -z 16 --debug
+python src/main.py -m 240 -x 380 -y 120 -z 16 --debug
 ```
 
 # Keys
