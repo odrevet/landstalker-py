@@ -35,19 +35,18 @@ class Tiledmap:
                             tile_image = self.data.get_tile_image_by_gid(tile)
                             if tile_image:
                                 # Convert isometric coordinates to screen coordinates
-                                screen_x, screen_y = iso_to_cartesian(
-                                    x, y, self.data.tilewidth, self.data.tileheight
-                                )
-                                
-                                #if screen_x - camera_x + h_offset > -16 and screen_y - camera_y > -16 and screen_x - camera_x + h_offset < 448 and screen_y - camera_y < 320: 
-                                #    pass
+                                screen_x, screen_y = iso_to_cartesian(x - 12, y - 11)
 
-                                # Draw the tile
-                                surface.blit(
-                                    tile_image,
-                                    (screen_x - camera_x + h_offset, 
-                                    screen_y - camera_y),
-                                )
+                                screen_x *= self.data.tilewidth // 2
+                                screen_y *= self.data.tileheight // 2
+
+                                if screen_x - camera_x + h_offset > -16 and screen_y - camera_y > -16 and screen_x - camera_x + h_offset < 448 and screen_y - camera_y < 320:
+                                    # Draw the tile
+                                    surface.blit(
+                                        tile_image,
+                                        (screen_x - camera_x + h_offset, 
+                                        screen_y - camera_y),
+                                    )
 
         # Debug: Draw heightmap
         if debug_mode and heightmap:
