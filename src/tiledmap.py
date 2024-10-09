@@ -36,7 +36,7 @@ class Tiledmap:
                             if tile_image:
                                 # Convert isometric coordinates to screen coordinates
                                 screen_x, screen_y = iso_to_cartesian(
-                                    x - (self.data.width // 2), y - (self.data.height // 2), self.data.tilewidth, self.data.tileheight
+                                    x, y, self.data.tilewidth, self.data.tileheight
                                 )
                                 
                                 #if screen_x - camera_x + h_offset > -16 and screen_y - camera_y > -16 and screen_x - camera_x + h_offset < 448 and screen_y - camera_y < 320: 
