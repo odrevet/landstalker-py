@@ -3,8 +3,8 @@ from pygame.math import Vector2, Vector3
 from utils import cartesian_to_iso
 
 def draw_heightmap(screen, heightmap, tile_width, tile_height, camera_x, camera_y):
-    offset_x = heightmap.left_offset * tile_height - 12
-    offset_y = heightmap.top_offset * tile_height - 12
+    offset_x = (heightmap.left_offset - 12) * tile_height - 12
+    offset_y = (heightmap.top_offset - 11) * tile_height - 12
     
     for y, row in enumerate(heightmap.cells):
         for x, cell in enumerate(row):
