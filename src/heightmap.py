@@ -26,3 +26,12 @@ class Heightmap:
 
             for row in csv_reader:
                 self.cells.append([HeightmapCell(walkable=int(value[0], 16),height=int(value[1], 16)) for value in row])
+
+    def get_width(self):
+        return len(self.cells[0])
+
+    def get_height(self):
+        return len(self.cells)
+
+    def at(self, x, y):
+        self.cells[y][x]
