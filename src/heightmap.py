@@ -5,6 +5,9 @@ class HeightmapCell:
     def __init__(self, height, walkable):
         self.height = height
         self.walkable = walkable
+    
+    def is_walkable(self):
+        return self.walkable < 4
 
 class Heightmap:
     def __init__(self):
@@ -33,5 +36,5 @@ class Heightmap:
     def get_height(self):
         return len(self.cells)
 
-    def at(self, x, y):
-        self.cells[y][x]
+    def get_cell(self, x, y):
+        return self.cells[y][x]

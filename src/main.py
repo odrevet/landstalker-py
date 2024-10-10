@@ -88,9 +88,6 @@ while True:
     elif len(heightmap.cells) > 0:
         height_at_foot = hero.world_pos.z + hero.HEIGHT * tiled_map.data.tileheight
 
-        map_height = len(heightmap.cells) * tiled_map.data.tileheight
-        map_width = len(heightmap.cells[0]) * tiled_map.data.tileheight
-
         left_x = int(hero.world_pos.x // tiled_map.data.tileheight) 
         left_y = int((hero.world_pos.y + tiled_map.data.tileheight) // tiled_map.data.tileheight)
 
@@ -118,9 +115,14 @@ while True:
             top_x = int(next_x // tiled_map.data.tileheight)
             left_x = int(next_x // tiled_map.data.tileheight) 
 
+            top_cell = heightmap.get_cell(top_x,top_y)
+            left_cell = heightmap.get_cell(left_x, left_y)
+
             if next_x > 0\
-            and heightmap.cells[top_y][top_x].height * tiled_map.data.tileheight <= height_at_foot \
-            and heightmap.cells[left_y][left_x].height * tiled_map.data.tileheight <= height_at_foot:
+            and top_cell.is_walkable() \
+            and top_cell.height * tiled_map.data.tileheight <= height_at_foot \
+            and left_cell.is_walkable() \
+            and left_cell.height * tiled_map.data.tileheight <= height_at_foot:
                 hero.world_pos.x -= 1
                 hero.update_screen_pos()
         elif keys[pygame.K_RIGHT]:
@@ -129,20 +131,30 @@ while True:
             bottom_x = int((next_x + tiled_map.data.tileheight) // tiled_map.data.tileheight)
             right_x = int((next_x + tiled_map.data.tileheight) // tiled_map.data.tileheight)
 
-            if next_x < map_width\
-            and heightmap.cells[bottom_y][bottom_x].height * tiled_map.data.tileheight <= height_at_foot \
-            and heightmap.cells[right_y][right_x].height * tiled_map.data.tileheight <= height_at_foot:
-                hero.world_pos.x += 1
-                hero.update_screen_pos()
+            if right_x < heightmap.get_width():
+                bottom_cell = heightmap.cells[bottom_y][bottom_x]
+                right_cell = heightmap.cells[right_y][right_x]
+
+                if bottom_cell.is_walkable() \
+                and bottom_cell.height * tiled_map.data.tileheight <= height_at_foot \
+                and right_cell.is_walkable() \
+                and right_cell.height * tiled_map.data.tileheight <= height_at_foot:
+                    hero.world_pos.x += 1
+                    hero.update_screen_pos()
         elif keys[pygame.K_UP]:
             next_y = hero.world_pos.y - 1
 
             top_y = int(next_y // tiled_map.data.tileheight)
             right_y = int(next_y // tiled_map.data.tileheight)
 
+            top_cell = heightmap.get_cell(top_x, top_y)
+            right_cell = heightmap.get_cell(right_x, right_y)
+
             if next_y > 0 \
-            and heightmap.cells[top_y][top_x].height * tiled_map.data.tileheight <= height_at_foot \
-            and heightmap.cells[right_y][right_x].height * tiled_map.data.tileheight <= height_at_foot:
+            and top_cell.is_walkable() \
+            and top_cell.height * tiled_map.data.tileheight <= height_at_foot \
+            and right_cell.is_walkable() \
+            and right_cell.height * tiled_map.data.tileheight <= height_at_foot:
                 hero.world_pos.y = next_y
                 hero.update_screen_pos()
         elif keys[pygame.K_DOWN]:
@@ -151,13 +163,18 @@ while True:
             left_y = int((next_y + tiled_map.data.tileheight) // tiled_map.data.tileheight)
             bottom_y = int((next_y + tiled_map.data.tileheight) // tiled_map.data.tileheight)
 
-            if next_y < map_height\
-            and heightmap.cells[left_y][left_x].height * tiled_map.data.tileheight <= height_at_foot \
-            and heightmap.cells[bottom_y][bottom_x].height * tiled_map.data.tileheight <= height_at_foot:
-                hero.world_pos.y += 1
-                hero.update_screen_pos()
+            if left_y < heightmap.get_height():
+                left_cell = heightmap.get_cell(left_x, left_y)
+                bottom_cell = heightmap.get_cell(bottom_x, bottom_y)
+
+                if left_cell.is_walkable() \
+                and left_cell.height * tiled_map.data.tileheight <= height_at_foot \
+                and bottom_cell.is_walkable() \
+                and bottom_cell.height * tiled_map.data.tileheight <= height_at_foot:
+                    hero.world_pos.y += 1
+                    hero.update_screen_pos()
         elif keys[pygame.K_SPACE]:
-            next_z = hero.world_pos.z + 16
+            next_z = hero.world_pos.z + 4
             hero.world_pos.z = next_z
             hero.update_screen_pos()
 
@@ -165,9 +182,6 @@ while True:
     if keys[pygame.K_ESCAPE]:
         pygame.quit()
         sys.exit()
-
-
-
 
     # Handle map changing with CTRL + arrow keys
     if debug_mode and keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]:
@@ -189,12 +203,7 @@ while True:
 
                 heightmap = Heightmap()
                 heightmap.load(current_map_number)
-        elif keys[pygame.K_UP]:
-            heightmap.top_offset += 1
-            extra_top += 1
-        elif keys[pygame.K_DOWN]:
-            heightmap.top_offset -= 1
-            extra_top -= 1
+
 
     # Clear the screen
     screen.fill((0, 0, 0))
