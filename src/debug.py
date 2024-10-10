@@ -8,8 +8,6 @@ def draw_heightmap(screen, heightmap, tile_height, camera_x, camera_y):
     
     for y, row in enumerate(heightmap.cells):
         for x, cell in enumerate(row):
-            if cell.walkable >= 4:
-                continue
                 
             height = cell.height
             left_x, left_y = cartesian_to_iso(
@@ -34,7 +32,9 @@ def draw_heightmap(screen, heightmap, tile_height, camera_x, camera_y):
             ]
 
             color = (255, 255, 255)
-            if height == 0:
+            if cell.walkable >= 4:
+                color = (255, 0, 0)
+            elif height == 0:
                 color = (255, 255, 0)
             elif height >= 20: 
                 color = (255, 0, 0)
@@ -63,7 +63,7 @@ def draw_heightmap(screen, heightmap, tile_height, camera_x, camera_y):
 
 def draw_hero_boundbox(hero, screen,  tile_height, camera_x, camera_y):
     offset_x = -12 
-    offset_y = -12 
+    offset_y = -12
 
     left_x, left_y = cartesian_to_iso(hero.world_pos.x - offset_x, hero.world_pos.y + tile_height - offset_y)
     bottom_x, bottom_y = cartesian_to_iso(hero.world_pos.x + tile_height - offset_x, hero.world_pos.y + tile_height - offset_y)
