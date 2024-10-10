@@ -35,7 +35,7 @@ class Tiledmap:
                             tile_image = self.data.get_tile_image_by_gid(tile)
                             if tile_image:
                                 # Convert isometric coordinates to screen coordinates
-                                screen_x, screen_y = iso_to_cartesian(x - 12, y - 11)
+                                screen_x, screen_y = iso_to_cartesian(x, y)
 
                                 screen_x *= self.data.tilewidth // 2
                                 screen_y *= self.data.tileheight // 2
@@ -50,7 +50,7 @@ class Tiledmap:
 
         # Debug: Draw heightmap
         if debug_mode and heightmap:
-            draw_heightmap(surface, heightmap, self.data.tilewidth, self.data.tileheight, camera_x, camera_y)
+            draw_heightmap(surface, heightmap, self.data.tileheight, camera_x, camera_y)
 
         # Draw hero
         hero.draw(surface, debug_mode)

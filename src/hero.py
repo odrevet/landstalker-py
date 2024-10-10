@@ -16,7 +16,7 @@ class Hero(pygame.sprite.Sprite):
     def update_screen_pos(self):
         iso_x, iso_y = cartesian_to_iso(self.world_pos.x, self.world_pos.y)
         self.__screen_pos.x = iso_x - 16
-        self.__screen_pos.y = iso_y - self.world_pos.z
+        self.__screen_pos.y = iso_y - self.world_pos.z + 12
 
     def draw(self, surface, debug_mode):
         surface.blit(self.image, self.__screen_pos)

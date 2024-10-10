@@ -65,9 +65,6 @@ heightmap.load(current_map_number)
 # Create a clock object to control the frame rate
 clock = pygame.time.Clock()
 
-extra_left = -12
-extra_top = -11
-
 while True:
     time_delta = clock.tick(60) / 1000.0
 
@@ -175,31 +172,23 @@ while True:
     # Handle map changing with CTRL + arrow keys
     if debug_mode and keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]:
         if keys[pygame.K_RIGHT]:
-            if keys[pygame.K_LSHIFT]:
-                heightmap.left_offset -= 1
-                extra_left -= 1
-            else:
-                current_map_number += 1
+            current_map_number += 1
+            tiled_map.load(current_map_number)
+
+            camera_x, camera_y = 0, 0  # Reset camera when changing maps
+
+            heightmap = Heightmap()
+            heightmap.load(current_map_number)
+
+        elif keys[pygame.K_LEFT]:
+            if current_map_number > 1:
+                current_map_number -= 1
                 tiled_map.load(current_map_number)
 
                 camera_x, camera_y = 0, 0  # Reset camera when changing maps
 
                 heightmap = Heightmap()
                 heightmap.load(current_map_number)
-
-        elif keys[pygame.K_LEFT]:
-            if keys[pygame.K_LSHIFT]:
-                heightmap.left_offset += 1
-                extra_left += 1
-            else:
-               if current_map_number > 1:
-                   current_map_number -= 1
-                   tiled_map.load(current_map_number)
-
-                   camera_x, camera_y = 0, 0  # Reset camera when changing maps
-
-                   heightmap = Heightmap()
-                   heightmap.load(current_map_number)
         elif keys[pygame.K_UP]:
             heightmap.top_offset += 1
             extra_top += 1
@@ -215,14 +204,12 @@ while True:
 
     # Update HUD with debug info
     if debug_mode and heightmap.cells:
-#        coord_label.set_text(f"X: {hero.world_pos.x}, Y: {hero.world_pos.y}, Z: {hero.world_pos.z + hero.HEIGHT * tiled_map.data.tileheight}\
-#T X: {hero.world_pos.x // tiled_map.data.tileheight}, Y: {hero.world_pos.y // tiled_map.data.tileheight}, Z: {(hero.world_pos.z + hero.HEIGHT * tiled_map.data.tileheight)// tiled_map.data.tileheight}")
-
-        coord_label.set_text(f"l {heightmap.left_offset} ({extra_left}) t {heightmap.top_offset} ({extra_top}) h {heightmap.get_height()} w {heightmap.get_width()}")
+        coord_label.set_text(f"X: {hero.world_pos.x}, Y: {hero.world_pos.y}, Z: {hero.world_pos.z + hero.HEIGHT * tiled_map.data.tileheight}\
+T X: {hero.world_pos.x // tiled_map.data.tileheight}, Y: {hero.world_pos.y // tiled_map.data.tileheight}, Z: {(hero.world_pos.z + hero.HEIGHT * tiled_map.data.tileheight)// tiled_map.data.tileheight}")
 
 
     if debug_mode:
-        draw_hero_boundbox(hero, screen, tiled_map.data.tileheight)
+        draw_hero_boundbox(hero, screen, tiled_map.data.tileheight, camera_x, camera_y)
 
     manager.draw_ui(screen)
 
