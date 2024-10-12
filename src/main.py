@@ -218,7 +218,7 @@ T X: {hero.world_pos.x // tiled_map.data.tileheight}, Y: {hero.world_pos.y // ti
 
 
     if debug_mode:
-        draw_hero_boundbox(hero, screen, tiled_map.data.tileheight, camera_x, camera_y)
+        draw_hero_boundbox(hero, screen, tiled_map.data.tileheight, camera_x, camera_y, heightmap.left_offset, heightmap.top_offset)
 
     manager.draw_ui(screen)
 

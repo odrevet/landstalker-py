@@ -61,9 +61,9 @@ def draw_heightmap(screen, heightmap, tile_height, camera_x, camera_y):
                                  (bottom_x - camera_x, bottom_y - camera_y - height * tile_height), 
                                  (bottom_x - camera_x, bottom_y - camera_y - height * tile_height - height_diff * tile_height))
 
-def draw_hero_boundbox(hero, screen,  tile_height, camera_x, camera_y):
-    offset_x = -12 
-    offset_y = -12
+def draw_hero_boundbox(hero, screen,  tile_height, camera_x, camera_y, heightmap_left_offset, heightmap_top_offset):
+    offset_x = (heightmap_left_offset - 12 + 4) * tile_height - 12
+    offset_y = (heightmap_top_offset - 11 + 4) * tile_height - 12
 
     left_x, left_y = cartesian_to_iso(hero.world_pos.x - offset_x, hero.world_pos.y + tile_height - offset_y)
     bottom_x, bottom_y = cartesian_to_iso(hero.world_pos.x + tile_height - offset_x, hero.world_pos.y + tile_height - offset_y)
@@ -77,7 +77,7 @@ def draw_hero_boundbox(hero, screen,  tile_height, camera_x, camera_y):
             (top_x - camera_x, top_y - hero.world_pos.z - camera_y)]
 
     pygame.draw.lines(screen,
-                    (255, 25, 25),
+                    (25, 255, 25),
                     True,
                     points)
 
@@ -89,7 +89,7 @@ def draw_hero_boundbox(hero, screen,  tile_height, camera_x, camera_y):
 
     pygame.draw.lines(
         screen,
-        (255, 25, 25),
+        (25, 255, 25),
         True,
         points,
     )
