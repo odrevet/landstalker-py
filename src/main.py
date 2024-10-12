@@ -79,12 +79,16 @@ while True:
         # Check arrow keys for camera movement
         if keys[pygame.K_LEFT]:
             camera_x -= CAMERA_SPEED
+            hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
         if keys[pygame.K_RIGHT]:
             camera_x += CAMERA_SPEED
+            hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
         if keys[pygame.K_UP]:
             camera_y -= CAMERA_SPEED
+            hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
         if keys[pygame.K_DOWN]:
             camera_y += CAMERA_SPEED
+            hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
     else:
         height_at_foot = hero.world_pos.z + hero.HEIGHT * tiled_map.data.tileheight
 
@@ -106,7 +110,7 @@ while True:
         and heightmap.cells[right_y][right_x].height * tiled_map.data.tileheight < height_at_foot \
         and heightmap.cells[left_y][left_x].height * tiled_map.data.tileheight < height_at_foot:
             hero.world_pos.z -= 1
-            hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset)
+            hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
 
         # Hero movement
         if keys[pygame.K_LEFT]:
@@ -124,7 +128,7 @@ while True:
             and left_cell.is_walkable() \
             and left_cell.height * tiled_map.data.tileheight <= height_at_foot:
                 hero.world_pos.x -= 1
-                hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset)
+                hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
         elif keys[pygame.K_RIGHT]:
             next_x = hero.world_pos.x + 1
 
@@ -140,7 +144,7 @@ while True:
                 and right_cell.is_walkable() \
                 and right_cell.height * tiled_map.data.tileheight <= height_at_foot:
                     hero.world_pos.x += 1
-                    hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset)
+                    hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
         elif keys[pygame.K_UP]:
             next_y = hero.world_pos.y - 1
 
@@ -156,7 +160,7 @@ while True:
             and right_cell.is_walkable() \
             and right_cell.height * tiled_map.data.tileheight <= height_at_foot:
                 hero.world_pos.y = next_y
-                hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset)
+                hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
         elif keys[pygame.K_DOWN]:
             next_y = hero.world_pos.y + 1
 
@@ -172,11 +176,11 @@ while True:
                 and bottom_cell.is_walkable() \
                 and bottom_cell.height * tiled_map.data.tileheight <= height_at_foot:
                     hero.world_pos.y += 1
-                    hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset)
+                    hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
         elif keys[pygame.K_SPACE]:
             next_z = hero.world_pos.z + 4
             hero.world_pos.z = next_z
-            hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset)
+            hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
 
     # Exit on Escape key
     if keys[pygame.K_ESCAPE]:
