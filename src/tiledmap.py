@@ -53,4 +53,4 @@ class Tiledmap:
             draw_heightmap(surface, heightmap, self.data.tileheight, camera_x, camera_y)
 
         # Draw hero
-        hero.draw(surface, debug_mode)
+        hero.draw(surface)

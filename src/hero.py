@@ -9,14 +9,17 @@ class Hero(pygame.sprite.Sprite):
 
         self.world_pos = Vector3(x, y, z)
         self.__screen_pos = Vector2()
-        self.update_screen_pos()
+        #self.update_screen_pos()
 
         self.HEIGHT = 2   # height in tile
 
-    def update_screen_pos(self):
-        iso_x, iso_y = cartesian_to_iso(self.world_pos.x, self.world_pos.y)
-        self.__screen_pos.x = iso_x - 16
-        self.__screen_pos.y = iso_y - self.world_pos.z + 12
+    def update_screen_pos(self, heightmap_left_offset, heightmap_top_offset):
+        offset_x = (heightmap_left_offset - 12 + 4) * 16
+        offset_y = (heightmap_top_offset - 11 + 4) * 16
 
-    def draw(self, surface, debug_mode):
+        iso_x, iso_y = cartesian_to_iso(self.world_pos.x - offset_x, self.world_pos.y - offset_y)
+        self.__screen_pos.x = iso_x - 16
+        self.__screen_pos.y = iso_y - self.world_pos.z + 12 
+
+    def draw(self, surface):
         surface.blit(self.image, self.__screen_pos)
