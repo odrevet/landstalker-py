@@ -9,7 +9,7 @@ from hero import Hero
 from utils import *
 from tiledmap import Tiledmap
 from heightmap import Heightmap
-from debug import draw_hero_boundbox
+from debug import draw_hero_boundbox, draw_heightmap
 
 # pygame
 pygame.init()
@@ -213,7 +213,12 @@ while True:
     screen.fill((0, 0, 0))
 
     # Draw the map
-    tiled_map.draw(screen, camera_x, camera_y, hero, heightmap, debug_mode)
+    tiled_map.draw(screen, camera_x, camera_y, hero)
+
+    # Draw heightmap (debug)
+    if debug_mode:
+        draw_heightmap(screen, heightmap, tiled_map.data.tileheight, camera_x, camera_y)
+
 
     # Update HUD with debug info
     if debug_mode and heightmap.cells:
