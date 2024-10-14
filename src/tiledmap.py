@@ -24,8 +24,9 @@ class Blockset:
 
     def draw(self, surface, layer_offset_h, camera_x, camera_y):
         for tile in self.tiles:
-            surface.blit(tile.image, 
-                    (self.screen_pos.x - camera_x + tile.offset.x + layer_offset_h, self.screen_pos.y - camera_y + tile.offset.y))
+            if self.screen_pos.x - camera_x + layer_offset_h > -16 and self.screen_pos.y - camera_y > -16 and self.screen_pos.x - camera_x + layer_offset_h < 448 and self.screen_pos.y - camera_y < 320:
+                surface.blit(tile.image, 
+                        (self.screen_pos.x - camera_x + tile.offset.x + layer_offset_h, self.screen_pos.y - camera_y + tile.offset.y))
 
 class Layer:
     def __init__(self):
