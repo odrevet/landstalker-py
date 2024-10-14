@@ -3,65 +3,79 @@ import os
 import pygame
 
 from pytmx.util_pygame import load_pygame
+from pygame.math import Vector2
 
 from hero import Hero
 from utils import cartesian_to_iso, iso_to_cartesian
 from debug import draw_heightmap
 
+class Tile:
+    def __init__(self, offset):
+        self.image = None
+        self.data = None
+        self.flags = None
+        self.offset = Vector2(offset[0], offset[1])
+
+class Blockset:
+    def __init__(self):
+        self.tiles = []
+        self.screen_pos = None
+        self.palette = None
+
+    def draw(self, surface, layer_offset_h, camera_x, camera_y):
+        for tile in self.tiles:
+            surface.blit(tile.image, 
+                    (self.screen_pos.x - camera_x + tile.offset.x + layer_offset_h, self.screen_pos.y - camera_y + tile.offset.y))
+
+class Layer:
+    def __init__(self):
+        self.data = None
+        self.blocksets = []
+
+    def draw(self, surface, camera_x, camera_y):
+        for blockset in self.blocksets:
+            blockset.draw(surface, self.data.offsetx, camera_x, camera_y)
+
+
 class Tiledmap:
     def __init__(self):
         self.data = None
+        self.background_layer = None
+        self.foreground_layer = None
 
     def load(self, map_number):
         self.data = load_pygame(f"data/Map{map_number:03d}.tmx")
 
+        self.background_layer = Layer()
+        self.background_layer.data = self.data.get_layer_by_name("Background")
+        self.populate_layer(self.background_layer)
+
+        self.foreground_layer = Layer()
+        self.foreground_layer.data = self.data.get_layer_by_name("Foreground")
+        self.populate_layer(self.foreground_layer)
+
+#    def load_flags(self, filename):
+#        with open(filename, mode="r") as file:
+#            csv_reader = csv.reader(file)
+#
+#            for row in csv_reader:
+#                for index, flags in enumerate(row):
+#                    self.blocksets[index].flags = flags
+
     def draw(self, surface, camera_x, camera_y, hero):
-        # draw background layer
-        background_layer = self.data.get_layer_by_name("Background")
-        self.draw_background(surface, background_layer, camera_x, camera_y)
-
-        # draw foreground layer
-        foreground_layer = self.data.get_layer_by_name("Foreground")
-        self.draw_foreground(surface, foreground_layer, camera_x, camera_y)
-
-        # draw hero
+        self.background_layer.draw(surface, camera_x, camera_y)
+        self.foreground_layer.draw(surface, camera_x, camera_y)
         hero.draw(surface)
 
-    def draw_background(self, surface, background_layer, camera_x, camera_y):
-        if hasattr(background_layer, "data"):
-            h_offset = 0
-            if hasattr(background_layer, "offsetx"):
-                h_offset = background_layer.offsetx
-            elif "offsetx" in background_layer.__dict__:
-                h_offset = background_layer.__dict__["offsetx"]
-            elif hasattr(background_layer, "horizontal_offset"):
-                h_offset = background_layer.horizontal_offset
 
-        for y in range(background_layer.height):
-            for x in range(background_layer.width):
-                tile = background_layer.data[y][x]
+    def populate_layer(self, layer):
+        for y in range(layer.data.height):
+            for x in range(layer.data.width):
+                layer_data = layer.data.data[y][x]
+
                 # Get the tile image
-                tile_image = self.data.get_tile_image_by_gid(tile)
-
-                # Convert isometric coordinates to screen coordinates
-                screen_x, screen_y = iso_to_cartesian(x, y)
-                screen_x *= self.data.tilewidth // 2
-                screen_y *= self.data.tileheight // 2
-
-                if screen_x - camera_x > -16 - h_offset and screen_y - camera_y > -16 and screen_x - camera_x < 448 and screen_y - camera_y < 320:
-                    # Draw the tile
-                    surface.blit(
-                        tile_image,
-                        (screen_x - camera_x + h_offset, 
-                        screen_y - camera_y),
-                    )
-
-    def draw_foreground(self, surface, foreground_layer, camera_x, camera_y):
-        for y in range(foreground_layer.height):
-            for x in range(foreground_layer.width):
-                tile = foreground_layer.data[y][x]
-                # Get the tile image
-                tile_image = self.data.get_tile_image_by_gid(tile)
+                tile_image = self.data.get_tile_image_by_gid(layer_data)
+                
                 # Get the tile dimensions
                 tile_width, tile_height = tile_image.get_width(), tile_image.get_height()
 
@@ -71,20 +85,22 @@ class Tiledmap:
                 bottom_left_rect = pygame.Rect(0, tile_height // 2, tile_width // 2, tile_height // 2)
                 bottom_right_rect = pygame.Rect(tile_width // 2, tile_height // 2, tile_width // 2, tile_height // 2)
 
-                # Convert isometric coordinates to screen coordinates
+                # Define offsets for the tiles inside a block
+                offsets = [(0, 0), (tile_width // 2, 0), (0, tile_height // 2), (tile_width // 2, tile_height // 2)]
+                tiles_rect = [top_left_rect, top_right_rect, bottom_left_rect, bottom_right_rect]
+
+                # Calculate screen position of the block
                 screen_x, screen_y = iso_to_cartesian(x, y)
                 screen_x *= self.data.tilewidth // 2
                 screen_y *= self.data.tileheight // 2
 
-                # Define offsets for the sub-tiles
-                offsets = [(0, 0), (tile_width // 2, 0), (0, tile_height // 2), (tile_width // 2, tile_height // 2)]
-                sub_tiles = [top_left_rect, top_right_rect, bottom_left_rect, bottom_right_rect]
-
-                # Blit each sub-tile
-                for sub_tile, offset in zip(sub_tiles, offsets):
-                    sub_image = tile_image.subsurface(sub_tile)
-                    surface.blit(
-                        sub_image,
-                        (screen_x - camera_x + offset[0],
-                        screen_y - camera_y + offset[1]),
-                    )
+                # instanciate a new blockset
+                blockset = Blockset()
+                blockset.screen_pos = Vector2(screen_x, screen_y)
+                for sub_tile, offset in zip(tiles_rect, offsets):
+                    tile = Tile(offset)
+                    tile.data = layer_data
+                    tile.image = tile_image.subsurface(sub_tile)
+                    blockset.tiles.append(tile)
+                
+                layer.blocksets.append(blockset)
