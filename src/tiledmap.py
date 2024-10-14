@@ -48,13 +48,13 @@ class Tiledmap:
                 screen_x *= self.data.tilewidth // 2
                 screen_y *= self.data.tileheight // 2
 
-                #if screen_x - camera_x > -16 and screen_y - camera_y > -16 and screen_x - camera_x < 448 and screen_y - camera_y < 320:
-                # Draw the tile
-                surface.blit(
-                    tile_image,
-                    (screen_x - camera_x + h_offset, 
-                    screen_y - camera_y),
-                )
+                if screen_x - camera_x > -16 - h_offset and screen_y - camera_y > -16 and screen_x - camera_x < 448 and screen_y - camera_y < 320:
+                    # Draw the tile
+                    surface.blit(
+                        tile_image,
+                        (screen_x - camera_x + h_offset, 
+                        screen_y - camera_y),
+                    )
 
     def draw_foreground(self, surface, foreground_layer, camera_x, camera_y):
         for y in range(foreground_layer.height):
