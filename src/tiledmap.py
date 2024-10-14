@@ -9,6 +9,28 @@ from hero import Hero
 from utils import cartesian_to_iso, iso_to_cartesian
 from debug import draw_heightmap
 
+import xml.etree.ElementTree as ET
+
+def get_unique_csv_values(tmx_file):
+    # Parse the TMX file
+    tree = ET.parse(tmx_file)
+    root = tree.getroot()
+
+    all_unique_values = set()
+
+    # Iterate through all layers
+    for layer in root.findall(".//layer"):
+        data = layer.find('data')
+        
+        if data is not None and data.get('encoding') == 'csv':
+            # Split the CSV data into a list of values
+            csv_values = data.text.strip().replace('\n', '').split(',')
+            
+            # Convert to integers and add non-zero values to the set
+            all_unique_values.update(int(value) for value in csv_values if int(value) != 0)
+
+    return sorted(all_unique_values)
+
 class Tile:
     def __init__(self, offset):
         self.image = None
@@ -57,6 +79,12 @@ class Tiledmap:
         self.foreground_layer = Layer()
         self.foreground_layer.data = self.data.get_layer_by_name("Foreground")
         self.populate_layer(self.foreground_layer)
+
+        #values = get_unique_csv_values(f"data/Map{map_number:03d}.tmx")
+        #print("Unique data values in the TMX file:")
+        #for value in values:
+        #    print(value)
+
 
 #    def load_flags(self, filename):
 #        with open(filename, mode="r") as file:
