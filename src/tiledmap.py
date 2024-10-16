@@ -9,10 +9,11 @@ from hero import Hero
 from utils import cartesian_to_iso, iso_to_cartesian
 from debug import draw_heightmap
 
+import xml.etree.ElementTree as ET
+
 class Tile:
     def __init__(self, offset):
         self.image = None
-        self.gid = None
         self.flags = None
         self.offset = Vector2(offset[0], offset[1])
 
@@ -26,6 +27,9 @@ class Blockset:
         self.tiles = []
         self.screen_pos = None
         self.palette = None
+        self.gid = None
+        self.csv_value = None
+
 
     def draw(self, surface, layer_offset_h, camera_x, camera_y):
         if self.screen_pos.x - camera_x + layer_offset_h > -16 and \
@@ -60,19 +64,36 @@ class Tiledmap:
 
         self.foreground_layer = Layer()
         self.foreground_layer.data = self.data.get_layer_by_name("Foreground")
-        #self.populate_layer(self.foreground_layer)
+        self.populate_layer(self.foreground_layer)
 
-        #self.load_flags(filename)
+        self.set_csv_values(f"data/Map{map_number:03d}.tmx")
+        #self.set_flags("")
 
+    def set_flags(self, filename):
+        with open(filename, mode="r") as file:
+            csv_reader = csv.reader(file)
 
-#    def load_flags(self, filename):
-#        with open(filename, mode="r") as file:
-#            csv_reader = csv.reader(file)
-#
-#            for row in csv_reader:
-#                for index, flags in enumerate(row):
-#                    self.blocksets[index].flags = flags
+            for row in csv_reader:
+                for index, flags in enumerate(row):
+                    pass #wip
 
+    def set_csv_values(self, filename):
+        tree = ET.parse(filename)
+        root = tree.getroot()
+        
+        for layer in root.findall(".//layer"):
+            layer_name = layer.get('name')
+            data = layer.find('data').text.strip().split(',')
+            
+            csv_values = [int(value) for value in data]
+            
+            if layer_name == "Background":
+                for index, csv_value in enumerate(csv_values):
+                    self.background_layer.blocksets[index].csv_value = csv_value
+            elif layer_name == "Foreground":
+                for index, csv_value in enumerate(csv_values):
+                    self.foreground_layer.blocksets[index].csv_value = csv_value
+        
     def draw(self, surface, camera_x, camera_y, hero):
         self.background_layer.draw(surface, camera_x, camera_y)
         self.foreground_layer.draw(surface, camera_x, camera_y)
@@ -108,9 +129,9 @@ class Tiledmap:
                 # instanciate a new blockset
                 blockset = Blockset()
                 blockset.screen_pos = Vector2(screen_x, screen_y)
+                blockset.gid = gid
                 for sub_tile, offset in zip(tiles_rect, offsets):
                     tile = Tile(offset)
-                    tile.gid = gid
                     tile.image = tile_image.subsurface(sub_tile)
                     blockset.tiles.append(tile)
                 
