@@ -55,7 +55,8 @@ class Tiledmap:
         self.foreground_layer = None
 
     def load(self, map_number):
-        self.data = load_pygame(f"data/Map{map_number:03d}.tmx")
+        tmx_filename = f"data/Map{map_number:03d}.tmx"
+        self.data = load_pygame(tmx_filename)
 
         self.background_layer = Layer()
         self.background_layer.data = self.data.get_layer_by_name("Background")
@@ -65,11 +66,12 @@ class Tiledmap:
         self.foreground_layer.data = self.data.get_layer_by_name("Foreground")
         self.populate_layer(self.foreground_layer)
 
-        self.set_csv_values(f"data/Map{map_number:03d}.tmx")
+        self.set_csv_values(tmx_filename)
 
         blocktile_name, palette = self.data.tilesets[0].name.rsplit('_', 1)
-        self.set_flags(self.background_layer, f"data/{blocktile_name}.csv")
-        self.set_flags(self.foreground_layer, f"data/{blocktile_name}.csv")
+        blocktile_filename = f"data/{blocktile_name}.csv"
+        self.set_flags(self.background_layer, blocktile_filename)
+        self.set_flags(self.foreground_layer, blocktile_filename)
 
     def set_flags(self, layer, filename):
         with open(filename, mode="r") as file:
