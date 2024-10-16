@@ -70,8 +70,10 @@ class Tiledmap:
 
         blocktile_name, palette = self.data.tilesets[0].name.rsplit('_', 1)
         blocktile_filename = f"data/{blocktile_name}.csv"
-        self.set_flags(self.background_layer, blocktile_filename)
-        self.set_flags(self.foreground_layer, blocktile_filename)
+
+        if os.path.exists(blocktile_filename):
+            self.set_flags(self.background_layer, blocktile_filename)
+            self.set_flags(self.foreground_layer, blocktile_filename)
 
     def set_flags(self, layer, filename):
         with open(filename, mode="r") as file:
