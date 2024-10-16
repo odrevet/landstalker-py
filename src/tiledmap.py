@@ -9,34 +9,17 @@ from hero import Hero
 from utils import cartesian_to_iso, iso_to_cartesian
 from debug import draw_heightmap
 
-import xml.etree.ElementTree as ET
-
-def get_unique_csv_values(tmx_file):
-    # Parse the TMX file
-    tree = ET.parse(tmx_file)
-    root = tree.getroot()
-
-    all_unique_values = set()
-
-    # Iterate through all layers
-    for layer in root.findall(".//layer"):
-        data = layer.find('data')
-        
-        if data is not None and data.get('encoding') == 'csv':
-            # Split the CSV data into a list of values
-            csv_values = data.text.strip().replace('\n', '').split(',')
-            
-            # Convert to integers and add non-zero values to the set
-            all_unique_values.update(int(value) for value in csv_values if int(value) != 0)
-
-    return sorted(all_unique_values)
-
 class Tile:
     def __init__(self, offset):
         self.image = None
         self.data = None
         self.flags = None
         self.offset = Vector2(offset[0], offset[1])
+
+    def draw(self, surface, screen_pos, layer_offset_h, camera_x, camera_y):
+        surface.blit(self.image, 
+                    (screen_pos.x - camera_x + self.offset.x + layer_offset_h, 
+                     screen_pos.y - camera_y + self.offset.y))
 
 class Blockset:
     def __init__(self):
@@ -50,8 +33,7 @@ class Blockset:
            self.screen_pos.x - camera_x + layer_offset_h < 448 and \
            self.screen_pos.y - camera_y < 320:
             for tile in self.tiles:
-                    surface.blit(tile.image, (self.screen_pos.x - camera_x + tile.offset.x + layer_offset_h, 
-                                              self.screen_pos.y - camera_y + tile.offset.y))
+                tile.draw(surface, self.screen_pos, layer_offset_h, camera_x, camera_y)
 
 class Layer:
     def __init__(self):
@@ -80,10 +62,7 @@ class Tiledmap:
         self.foreground_layer.data = self.data.get_layer_by_name("Foreground")
         self.populate_layer(self.foreground_layer)
 
-        #values = get_unique_csv_values(f"data/Map{map_number:03d}.tmx")
-        #print("Unique data values in the TMX file:")
-        #for value in values:
-        #    print(value)
+        #self.load_flags(filename)
 
 
 #    def load_flags(self, filename):
