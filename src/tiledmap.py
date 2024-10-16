@@ -1,4 +1,5 @@
 import os
+import csv 
 
 import pygame
 
@@ -26,10 +27,8 @@ class Blockset:
     def __init__(self):
         self.tiles = []
         self.screen_pos = None
-        self.palette = None
         self.gid = None
         self.csv_value = None
-
 
     def draw(self, surface, layer_offset_h, camera_x, camera_y):
         if self.screen_pos.x - camera_x + layer_offset_h > -16 and \
@@ -68,17 +67,21 @@ class Tiledmap:
 
         self.set_csv_values(f"data/Map{map_number:03d}.tmx")
 
-        parts = self.data.tilesets[0].name.rsplit('_', 1)
-        print(parts)
-        #self.set_flags("")
+        blocktile_name, palette = self.data.tilesets[0].name.rsplit('_', 1)
+        self.set_flags(self.background_layer, f"data/{blocktile_name}.csv")
+        self.set_flags(self.foreground_layer, f"data/{blocktile_name}.csv")
 
-    def set_flags(self, filename):
+    def set_flags(self, layer, filename):
         with open(filename, mode="r") as file:
             csv_reader = csv.reader(file)
 
+            row_index = 0
             for row in csv_reader:
-                for index, flags in enumerate(row):
-                    pass #wip
+                for blockset in layer.blocksets:
+                    if blockset.csv_value == row_index:
+                        for tile_index, flags in enumerate(row):
+                            blockset.tiles[tile_index].flags = flags
+                row_index += 1
 
     def set_csv_values(self, filename):
         tree = ET.parse(filename)
