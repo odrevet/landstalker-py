@@ -12,7 +12,7 @@ from debug import draw_heightmap
 class Tile:
     def __init__(self, offset):
         self.image = None
-        self.data = None
+        self.gid = None
         self.flags = None
         self.offset = Vector2(offset[0], offset[1])
 
@@ -60,7 +60,7 @@ class Tiledmap:
 
         self.foreground_layer = Layer()
         self.foreground_layer.data = self.data.get_layer_by_name("Foreground")
-        self.populate_layer(self.foreground_layer)
+        #self.populate_layer(self.foreground_layer)
 
         #self.load_flags(filename)
 
@@ -82,10 +82,10 @@ class Tiledmap:
     def populate_layer(self, layer):
         for y in range(layer.data.height):
             for x in range(layer.data.width):
-                layer_data = layer.data.data[y][x]
+                gid = layer.data.data[y][x]
 
                 # Get the tile image
-                tile_image = self.data.get_tile_image_by_gid(layer_data)
+                tile_image = self.data.get_tile_image_by_gid(gid)
                 
                 # Get the tile dimensions
                 tile_width, tile_height = tile_image.get_width(), tile_image.get_height()
@@ -110,7 +110,7 @@ class Tiledmap:
                 blockset.screen_pos = Vector2(screen_x, screen_y)
                 for sub_tile, offset in zip(tiles_rect, offsets):
                     tile = Tile(offset)
-                    tile.data = layer_data
+                    tile.gid = gid
                     tile.image = tile_image.subsurface(sub_tile)
                     blockset.tiles.append(tile)
                 
