@@ -67,6 +67,9 @@ class Tiledmap:
         self.populate_layer(self.foreground_layer)
 
         self.set_csv_values(f"data/Map{map_number:03d}.tmx")
+
+        parts = self.data.tilesets[0].name.rsplit('_', 1)
+        print(parts)
         #self.set_flags("")
 
     def set_flags(self, filename):
