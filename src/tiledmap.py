@@ -1,5 +1,6 @@
 import os
 import csv 
+import sys
 
 import pygame
 
@@ -71,8 +72,9 @@ class Tiledmap:
         blocktile_name, palette = self.data.tilesets[0].name.rsplit('_', 1)
         blocktile_filename = f"data/{blocktile_name}.csv"
 
+
         if os.path.exists(blocktile_filename):
-            self.set_flags(self.background_layer, blocktile_filename)
+            #self.set_flags(self.background_layer, blocktile_filename)
             self.set_flags(self.foreground_layer, blocktile_filename)
 
     def set_flags(self, layer, filename):
@@ -108,7 +110,10 @@ class Tiledmap:
         self.background_layer.draw(surface, camera_x, camera_y)
         self.foreground_layer.draw(surface, camera_x, camera_y)
         hero.draw(surface)
-
+        #for blockset in self.foreground_layer.blocksets:
+        #    for tile in blockset.tiles:
+        #        if not tile.flags is None and tile.flags[3] == "8":
+        #            tile.draw(surface, blockset.screen_pos, self.foreground_layer.data.offsetx, camera_x, camera_y)
 
     def populate_layer(self, layer):
         for y in range(layer.data.height):

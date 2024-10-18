@@ -15,7 +15,9 @@ from debug import draw_hero_boundbox, draw_heightmap
 pygame.init()
 display_width = 320
 display_height = 448
-screen = pygame.display.set_mode((display_height, display_width))
+screen = pygame.display.set_mode((display_height, display_width), pygame.RESIZABLE)
+surface = pygame.Surface((display_height, display_width))
+
 pygame.display.set_caption("LandStalker")
 
 # Initialize the argument parser
@@ -51,9 +53,9 @@ coord_label = pygame_gui.elements.UILabel(
 # Camera
 camera_x, camera_y = 0, 0
 CAMERA_SPEED = 5
-
-# Hero
-hero = Hero(args.x, args.y, args.z)
+GRAVITY = 2
+HERO_SPEED = 1.75
+HERO_MAX_JUMP = 16
 
 # maps
 tiled_map = Tiledmap()
@@ -61,6 +63,10 @@ tiled_map.load(current_map_number)
 
 heightmap = Heightmap() 
 heightmap.load(current_map_number)
+
+# Hero
+hero = Hero(args.x, args.y, args.z)
+hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
 
 # Create a clock object to control the frame rate
 clock = pygame.time.Clock()
@@ -72,6 +78,8 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        elif event.type == pygame.VIDEORESIZE:
+            screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
 
     keys = pygame.key.get_pressed()
 
@@ -90,31 +98,36 @@ while True:
             camera_y += CAMERA_SPEED
             hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
     else:
-        height_at_foot = hero.world_pos.z + hero.HEIGHT * tiled_map.data.tileheight
+        height_at_foot = hero._world_pos.z + hero.HEIGHT * tiled_map.data.tileheight
 
-        left_x = int(hero.world_pos.x // tiled_map.data.tileheight) 
-        left_y = int((hero.world_pos.y + tiled_map.data.tileheight) // tiled_map.data.tileheight)
+        left_x = int(hero._world_pos.x // tiled_map.data.tileheight) 
+        left_y = int((hero._world_pos.y + tiled_map.data.tileheight) // tiled_map.data.tileheight)
 
-        bottom_x = int((hero.world_pos.x + tiled_map.data.tileheight) // tiled_map.data.tileheight)
-        bottom_y = int((hero.world_pos.y + tiled_map.data.tileheight) // tiled_map.data.tileheight)
+        bottom_x = int((hero._world_pos.x + tiled_map.data.tileheight) // tiled_map.data.tileheight)
+        bottom_y = int((hero._world_pos.y + tiled_map.data.tileheight) // tiled_map.data.tileheight)
 
-        top_x = int(hero.world_pos.x // tiled_map.data.tileheight)
-        top_y = int(hero.world_pos.y // tiled_map.data.tileheight)
+        top_x = int(hero._world_pos.x // tiled_map.data.tileheight)
+        top_y = int(hero._world_pos.y // tiled_map.data.tileheight)
 
-        right_x = int((hero.world_pos.x + tiled_map.data.tileheight) // tiled_map.data.tileheight)
-        right_y = int(hero.world_pos.y // tiled_map.data.tileheight)
+        right_x = int((hero._world_pos.x + tiled_map.data.tileheight) // tiled_map.data.tileheight)
+        right_y = int(hero._world_pos.y // tiled_map.data.tileheight)
 
         # Gravity
-        if heightmap.cells[top_y][top_x].height * tiled_map.data.tileheight < height_at_foot \
+        if hero.is_jumping == False \
+        and heightmap.cells[top_y][top_x].height * tiled_map.data.tileheight < height_at_foot \
         and heightmap.cells[bottom_y][bottom_x].height * tiled_map.data.tileheight < height_at_foot \
         and heightmap.cells[right_y][right_x].height * tiled_map.data.tileheight < height_at_foot \
         and heightmap.cells[left_y][left_x].height * tiled_map.data.tileheight < height_at_foot:
-            hero.world_pos.z -= 1
+            hero._world_pos.z -= 1
             hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
+            hero.touch_ground = False
+            hero.current_jump = 0
+        else:
+            hero.touch_ground = True
 
         # Hero movement
         if keys[pygame.K_LEFT]:
-            next_x = hero.world_pos.x - 1
+            next_x = hero._world_pos.x - HERO_SPEED
             
             top_x = int(next_x // tiled_map.data.tileheight)
             left_x = int(next_x // tiled_map.data.tileheight) 
@@ -127,10 +140,10 @@ while True:
             and top_cell.height * tiled_map.data.tileheight <= height_at_foot \
             and left_cell.is_walkable() \
             and left_cell.height * tiled_map.data.tileheight <= height_at_foot:
-                hero.world_pos.x -= 1
+                hero._world_pos.x -= HERO_SPEED
                 hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
         elif keys[pygame.K_RIGHT]:
-            next_x = hero.world_pos.x + 1
+            next_x = hero._world_pos.x + HERO_SPEED
 
             bottom_x = int((next_x + tiled_map.data.tileheight) // tiled_map.data.tileheight)
             right_x = int((next_x + tiled_map.data.tileheight) // tiled_map.data.tileheight)
@@ -143,10 +156,10 @@ while True:
                 and bottom_cell.height * tiled_map.data.tileheight <= height_at_foot \
                 and right_cell.is_walkable() \
                 and right_cell.height * tiled_map.data.tileheight <= height_at_foot:
-                    hero.world_pos.x += 1
+                    hero._world_pos.x += HERO_SPEED
                     hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
         elif keys[pygame.K_UP]:
-            next_y = hero.world_pos.y - 1
+            next_y = hero._world_pos.y - HERO_SPEED
 
             top_y = int(next_y // tiled_map.data.tileheight)
             right_y = int(next_y // tiled_map.data.tileheight)
@@ -159,10 +172,10 @@ while True:
             and top_cell.height * tiled_map.data.tileheight <= height_at_foot \
             and right_cell.is_walkable() \
             and right_cell.height * tiled_map.data.tileheight <= height_at_foot:
-                hero.world_pos.y = next_y
+                hero._world_pos.y = next_y
                 hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
         elif keys[pygame.K_DOWN]:
-            next_y = hero.world_pos.y + 1
+            next_y = hero._world_pos.y + HERO_SPEED
 
             left_y = int((next_y + tiled_map.data.tileheight) // tiled_map.data.tileheight)
             bottom_y = int((next_y + tiled_map.data.tileheight) // tiled_map.data.tileheight)
@@ -175,12 +188,20 @@ while True:
                 and left_cell.height * tiled_map.data.tileheight <= height_at_foot \
                 and bottom_cell.is_walkable() \
                 and bottom_cell.height * tiled_map.data.tileheight <= height_at_foot:
-                    hero.world_pos.y += 1
+                    hero._world_pos.y += HERO_SPEED
                     hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
-        elif keys[pygame.K_SPACE]:
-            next_z = hero.world_pos.z + 4
-            hero.world_pos.z = next_z
+    
+    if keys[pygame.K_SPACE] and hero.touch_ground == True and hero.is_jumping == False:
+        hero.is_jumping = True
+
+    if hero.is_jumping:
+        if hero.current_jump < HERO_MAX_JUMP:
+            hero.current_jump += 2
+            next_z = hero._world_pos.z + 2
+            hero._world_pos.z = next_z
             hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
+        else:
+            hero.is_jumping = False
 
     # Exit on Escape key
     if keys[pygame.K_ESCAPE]:
@@ -210,29 +231,33 @@ while True:
 
 
     # Clear the screen
-    screen.fill((0, 0, 0))
+    surface.fill((0, 0, 0))
 
     # Draw the map
-    tiled_map.draw(screen, camera_x, camera_y, hero)
+    tiled_map.draw(surface, camera_x, camera_y, hero)
 
     # Draw heightmap (debug)
     if debug_mode:
-        draw_heightmap(screen, heightmap, tiled_map.data.tileheight, camera_x, camera_y)
+        draw_heightmap(surface, heightmap, tiled_map.data.tileheight, camera_x, camera_y)
 
 
     # Update HUD with debug info
     if debug_mode and heightmap.cells:
-        coord_label.set_text(f"X: {hero.world_pos.x}, Y: {hero.world_pos.y}, Z: {hero.world_pos.z + hero.HEIGHT * tiled_map.data.tileheight}\
-T X: {hero.world_pos.x // tiled_map.data.tileheight}, Y: {hero.world_pos.y // tiled_map.data.tileheight}, Z: {(hero.world_pos.z + hero.HEIGHT * tiled_map.data.tileheight)// tiled_map.data.tileheight}")
+        coord_label.set_text(f"X: {hero._world_pos.x}, Y: {hero._world_pos.y}, Z: {hero._world_pos.z + hero.HEIGHT * tiled_map.data.tileheight}\
+T X: {hero._world_pos.x // tiled_map.data.tileheight}, Y: {hero._world_pos.y // tiled_map.data.tileheight}, Z: {(hero._world_pos.z + hero.HEIGHT * tiled_map.data.tileheight)// tiled_map.data.tileheight}")
 
 
     if debug_mode:
-        draw_hero_boundbox(hero, screen, tiled_map.data.tileheight, camera_x, camera_y, heightmap.left_offset, heightmap.top_offset)
+        draw_hero_boundbox(hero, surface, tiled_map.data.tileheight, camera_x, camera_y, heightmap.left_offset, heightmap.top_offset)
 
-    manager.draw_ui(screen)
+    manager.draw_ui(surface)
 
     # Update the display
     manager.update(time_delta)
+
+    scaled_surface = pygame.transform.scale(surface, screen.get_size())
+    screen.blit(scaled_surface, (0, 0))
+
     pygame.display.flip()
 
     # Cap the frame rate
