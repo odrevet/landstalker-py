@@ -8,7 +8,7 @@ class Hero(pygame.sprite.Sprite):
         self.image = pygame.image.load('data/SpriteGfx000Frame01.png').convert_alpha()
 
         self._world_pos = Vector3(x, y, z)
-        self.__screen_pos = Vector2()
+        self.screen_pos = Vector2()
 
         self.HEIGHT = 2   # height in tile
         self.touch_ground = False
@@ -20,8 +20,8 @@ class Hero(pygame.sprite.Sprite):
         offset_y = (heightmap_top_offset - 11 + 4) * 16
 
         iso_x, iso_y = cartesian_to_iso(self._world_pos.x - offset_x, self._world_pos.y - offset_y)
-        self.__screen_pos.x = iso_x - 16 - camera_x
-        self.__screen_pos.y = iso_y - self._world_pos.z + 12 - camera_y 
+        self.screen_pos.x = iso_x - 16 - camera_x
+        self.screen_pos.y = iso_y - self._world_pos.z + 12 - camera_y 
 
     def draw(self, surface):
-        surface.blit(self.image, self.__screen_pos)
+        surface.blit(self.image, self.screen_pos)

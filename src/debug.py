@@ -2,6 +2,9 @@ import pygame
 from pygame.math import Vector2, Vector3
 from utils import cartesian_to_iso
 
+is_height_map_displayed = False
+is_boundbox_displayed = False
+
 def draw_heightmap(screen, heightmap, tile_height, camera_x, camera_y):
     offset_x = (heightmap.left_offset - 12) * tile_height - 12
     offset_y = (heightmap.top_offset - 11) * tile_height - 12

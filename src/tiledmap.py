@@ -1,7 +1,3 @@
-import os
-import csv 
-import sys
-
 import pygame
 
 from pytmx.util_pygame import load_pygame
@@ -9,14 +5,13 @@ from pygame.math import Vector2
 
 from hero import Hero
 from utils import cartesian_to_iso, iso_to_cartesian
-from debug import draw_heightmap
-
-import xml.etree.ElementTree as ET
 
 class Tile:
     def __init__(self, offset):
         self.image = None
-        self.flags = None
+        self.has_priority = False
+        self.is_hflipped = False
+        self.is_vflipped = False
         self.offset = Vector2(offset[0], offset[1])
 
     def draw(self, surface, screen_pos, layer_offset_h, camera_x, camera_y):
@@ -27,9 +22,9 @@ class Tile:
 class Blockset:
     def __init__(self):
         self.tiles = []
+        self.grid_pos = None
         self.screen_pos = None
         self.gid = None
-        self.csv_value = None
 
     def draw(self, surface, layer_offset_h, camera_x, camera_y):
         if self.screen_pos.x - camera_x + layer_offset_h > -16 and \
@@ -67,53 +62,21 @@ class Tiledmap:
         self.foreground_layer.data = self.data.get_layer_by_name("Foreground")
         self.populate_layer(self.foreground_layer)
 
-        self.set_csv_values(tmx_filename)
-
-        blocktile_name, palette = self.data.tilesets[0].name.rsplit('_', 1)
-        blocktile_filename = f"data/{blocktile_name}.csv"
-
-
-        if os.path.exists(blocktile_filename):
-            #self.set_flags(self.background_layer, blocktile_filename)
-            self.set_flags(self.foreground_layer, blocktile_filename)
-
-    def set_flags(self, layer, filename):
-        with open(filename, mode="r") as file:
-            csv_reader = csv.reader(file)
-
-            row_index = 0
-            for row in csv_reader:
-                for blockset in layer.blocksets:
-                    if blockset.csv_value == row_index:
-                        for tile_index, flags in enumerate(row):
-                            blockset.tiles[tile_index].flags = flags
-                row_index += 1
-
-    def set_csv_values(self, filename):
-        tree = ET.parse(filename)
-        root = tree.getroot()
-        
-        for layer in root.findall(".//layer"):
-            layer_name = layer.get('name')
-            data = layer.find('data').text.strip().split(',')
-            
-            csv_values = [int(value) for value in data]
-            
-            if layer_name == "Background":
-                for index, csv_value in enumerate(csv_values):
-                    self.background_layer.blocksets[index].csv_value = csv_value
-            elif layer_name == "Foreground":
-                for index, csv_value in enumerate(csv_values):
-                    self.foreground_layer.blocksets[index].csv_value = csv_value
         
     def draw(self, surface, camera_x, camera_y, hero):
         self.background_layer.draw(surface, camera_x, camera_y)
-        self.foreground_layer.draw(surface, camera_x, camera_y)
+
+        for blockset in self.foreground_layer.blocksets:
+            for tile in blockset.tiles:
+                if tile.has_priority == False:
+                    tile.draw(surface, blockset.screen_pos, self.foreground_layer.data.offsetx, camera_x, camera_y)
+
         hero.draw(surface)
-        #for blockset in self.foreground_layer.blocksets:
-        #    for tile in blockset.tiles:
-        #        if not tile.flags is None and tile.flags[3] == "8":
-        #            tile.draw(surface, blockset.screen_pos, self.foreground_layer.data.offsetx, camera_x, camera_y)
+        
+        for blockset in self.foreground_layer.blocksets:
+            for tile in blockset.tiles:
+                if tile.has_priority == True:
+                    tile.draw(surface, blockset.screen_pos, self.foreground_layer.data.offsetx, camera_x, camera_y)
 
     def populate_layer(self, layer):
         for y in range(layer.data.height):
@@ -143,11 +106,20 @@ class Tiledmap:
 
                 # instanciate a new blockset
                 blockset = Blockset()
+                blockset.grid_pos = Vector2(x, y)
                 blockset.screen_pos = Vector2(screen_x, screen_y)
                 blockset.gid = gid
-                for sub_tile, offset in zip(tiles_rect, offsets):
+
+                # Access the tile properties
+                tile_properties = self.data.get_tile_properties_by_gid(gid)
+
+                for index, (sub_tile, offset) in enumerate(zip(tiles_rect, offsets)):
                     tile = Tile(offset)
                     tile.image = tile_image.subsurface(sub_tile)
+
+                    tile.is_hflipped = tile_properties.get(f"isHFlipped{index}", False)
+                    tile.is_vflipped = tile_properties.get(f"isVFlipped{index}", False)
+                    tile.has_priority = tile_properties.get(f"hasPriority{index}", False)
+
                     blockset.tiles.append(tile)
-                
                 layer.blocksets.append(blockset)

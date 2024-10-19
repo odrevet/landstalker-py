@@ -9,7 +9,7 @@ from hero import Hero
 from utils import *
 from tiledmap import Tiledmap
 from heightmap import Heightmap
-from debug import draw_hero_boundbox, draw_heightmap
+from debug import draw_hero_boundbox, draw_heightmap, is_height_map_displayed, is_boundbox_displayed
 
 # pygame
 pygame.init()
@@ -83,7 +83,7 @@ while True:
 
     keys = pygame.key.get_pressed()
 
-    if debug_mode and keys[pygame.K_LSHIFT]:
+    if keys[pygame.K_LSHIFT]:
         # Check arrow keys for camera movement
         if keys[pygame.K_LEFT]:
             camera_x -= CAMERA_SPEED
@@ -121,7 +121,6 @@ while True:
             hero._world_pos.z -= 1
             hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
             hero.touch_ground = False
-            hero.current_jump = 0
         else:
             hero.touch_ground = True
 
@@ -190,7 +189,12 @@ while True:
                 and bottom_cell.height * tiled_map.data.tileheight <= height_at_foot:
                     hero._world_pos.y += HERO_SPEED
                     hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
-    
+        elif keys[pygame.K_h]:
+            is_height_map_displayed = not is_height_map_displayed
+        elif keys[pygame.K_b]:
+            is_boundbox_displayed = not is_boundbox_displayed
+
+
     if keys[pygame.K_SPACE] and hero.touch_ground == True and hero.is_jumping == False:
         hero.is_jumping = True
 
@@ -237,7 +241,7 @@ while True:
     tiled_map.draw(surface, camera_x, camera_y, hero)
 
     # Draw heightmap (debug)
-    if debug_mode:
+    if debug_mode and is_height_map_displayed:
         draw_heightmap(surface, heightmap, tiled_map.data.tileheight, camera_x, camera_y)
 
 
@@ -247,7 +251,7 @@ while True:
 T X: {hero._world_pos.x // tiled_map.data.tileheight}, Y: {hero._world_pos.y // tiled_map.data.tileheight}, Z: {(hero._world_pos.z + hero.HEIGHT * tiled_map.data.tileheight)// tiled_map.data.tileheight}")
 
 
-    if debug_mode:
+    if debug_mode and is_boundbox_displayed:
         draw_hero_boundbox(hero, surface, tiled_map.data.tileheight, camera_x, camera_y, heightmap.left_offset, heightmap.top_offset)
 
     manager.draw_ui(surface)
