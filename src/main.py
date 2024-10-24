@@ -24,7 +24,7 @@ pygame.display.set_caption("LandStalker")
 parser = argparse.ArgumentParser()
 
 # Add arguments
-parser.add_argument('-m', '--map', type=int, default=1, help='Map number')
+parser.add_argument('-r', '--room', type=int, default=1, help='room number')
 parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mode')
 parser.add_argument('-x', type=int, default=0)
 parser.add_argument('-y', type=int, default=0)
@@ -34,7 +34,7 @@ parser.add_argument('-z', type=int, default=0)
 args = parser.parse_args()
 
 # Use the arguments
-current_map_number = args.map
+room_number = args.room
 debug_mode = args.debug
 
 # gui
@@ -57,12 +57,15 @@ GRAVITY = 2
 HERO_SPEED = 1.75
 HERO_MAX_JUMP = 16
 
-# maps
+# Room
 tiled_map = Tiledmap()
-tiled_map.load(current_map_number)
+tiled_map.load(room_number)
 
-heightmap = Heightmap() 
-heightmap.load(current_map_number)
+room_map = tiled_map.data.properties['RoomMap']
+
+# Heightmap
+heightmap = Heightmap()
+heightmap.load(room_map)
 
 # Hero
 hero = Hero(args.x, args.y, args.z)
@@ -215,23 +218,23 @@ while True:
     # Handle map changing with CTRL + arrow keys
     if debug_mode and keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]:
         if keys[pygame.K_RIGHT]:
-            current_map_number += 1
-            tiled_map.load(current_map_number)
+            room_number += 1
+            tiled_map.load(room_number)
 
             camera_x, camera_y = 0, 0  # Reset camera when changing maps
 
             heightmap = Heightmap()
-            heightmap.load(current_map_number)
+            heightmap.load(room_number)
 
         elif keys[pygame.K_LEFT]:
-            if current_map_number > 1:
-                current_map_number -= 1
-                tiled_map.load(current_map_number)
+            if room_number > 1:
+                room_number -= 1
+                tiled_map.load(room_number)
 
                 camera_x, camera_y = 0, 0  # Reset camera when changing maps
 
                 heightmap = Heightmap()
-                heightmap.load(current_map_number)
+                heightmap.load(room_number)
 
 
     # Clear the screen

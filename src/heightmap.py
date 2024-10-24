@@ -1,4 +1,3 @@
-import os
 import csv
 
 class HeightmapCell:
@@ -15,11 +14,8 @@ class Heightmap:
         self.top_offset = 0
         self.cells = []
 
-    def load(self, map_number):
-        map_filename = f"data/Map{map_number}_heightmap.csv"
-
-        if not os.path.exists(map_filename):
-            return
+    def load(self, map_name):
+        map_filename = f"data/heightmaps/{map_name}_heightmap.csv"
 
         with open(map_filename, mode="r") as file:
             csv_reader = csv.reader(file)

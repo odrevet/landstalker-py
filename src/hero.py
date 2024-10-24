@@ -5,7 +5,7 @@ from utils import cartesian_to_iso
 class Hero(pygame.sprite.Sprite):
     def __init__(self, x=0, y=0, z=0):
         super().__init__()
-        self.image = pygame.image.load('data/SpriteGfx000Frame01.png').convert_alpha()
+        self.image = pygame.image.load('data/gfx/SpriteGfx000Anim000.png').convert_alpha()
 
         self._world_pos = Vector3(x, y, z)
         self.screen_pos = Vector2()
