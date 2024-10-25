@@ -11,9 +11,9 @@ Export using https://github.com/lordmir/landstalker_editor/
 
 Some functionalities are only available in branches in this fork at the moment : https://github.com/odrevet/landstalker_editor
 
-* Export all rooms (branch export-rooms-with-flags) and move them to `data/rooms`
+* `Rooms / export all rooms to tmx` and move them to `data/rooms`
 * To enable heightmap (wip background collision) : Export map as csv set (heightmap csv only is needed) and move them to `data/heightmaps`
-* To display the Ryle (aka Nigel) sprite : Select `Sprite/Sprite/Gfx000` and export as png with `file/Export sprite animation as png` (branch `export-sprite-animation`) and move to png to `data/gfx`
+* `Entities / export all png` and move pngs to `data/gfx`
 
 # Python packages
 
