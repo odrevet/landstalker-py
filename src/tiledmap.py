@@ -80,7 +80,7 @@ class Tiledmap:
 
 
         
-    def draw(self, surface, camera_x, camera_y, hero):
+    def draw(self, surface, camera_x, camera_y):
         self.background_layer.draw(surface, camera_x, camera_y)
 
         for blockset in self.foreground_layer.blocksets:
@@ -88,7 +88,7 @@ class Tiledmap:
                 if tile.has_priority == False:
                     tile.draw(surface, blockset.screen_pos, self.foreground_layer.data.offsetx, camera_x, camera_y)
 
-        hero.draw(surface)
+        #hero.draw(surface)
         
         for blockset in self.foreground_layer.blocksets:
             for tile in blockset.tiles:
@@ -134,9 +134,9 @@ class Tiledmap:
                     tile = Tile(offset)
                     tile.image = tile_image.subsurface(sub_tile)
 
-                    tile.is_hflipped = tile_properties.get(f"isHFlipped{index}", False)
-                    tile.is_vflipped = tile_properties.get(f"isVFlipped{index}", False)
-                    tile.has_priority = tile_properties.get(f"hasPriority{index}", False)
+                    # tile.is_hflipped = tile_properties.get(f"isHFlipped{index}", False)
+                    # tile.is_vflipped = tile_properties.get(f"isVFlipped{index}", False)
+                    # tile.has_priority = tile_properties.get(f"hasPriority{index}", False)
 
                     blockset.tiles.append(tile)
                 layer.blocksets.append(blockset)

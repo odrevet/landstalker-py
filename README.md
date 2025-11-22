@@ -17,7 +17,10 @@ Some functionalities are only available in branches in this fork at the moment :
 
 # Python packages
 
-See `requirements.txt`
+```
+source myenv/bin/activate
+pip install -r requirements.txt
+```
 
 # Usage
 
