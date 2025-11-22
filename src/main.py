@@ -61,11 +61,11 @@ HERO_MAX_JUMP = 16
 tiled_map = Tiledmap()
 tiled_map.load(room_number)
 
-#room_map = tiled_map.data.properties['RoomMap']
+room_map = tiled_map.data.properties['RoomMap']
 
 # Heightmap
-#heightmap = Heightmap()
-#heightmap.load(room_map)
+heightmap = Heightmap()
+heightmap.load(room_map)
 
 # Hero
 #hero = Hero(args.x, args.y, args.z)
@@ -128,7 +128,8 @@ while True:
 #            hero.touch_ground = True
 #
 #        # Hero movement
-#        if keys[pygame.K_LEFT]:
+        if keys[pygame.K_LEFT]:
+            pass
 #            next_x = hero._world_pos.x - HERO_SPEED
 #            
 #            top_x = int(next_x // tiled_map.data.tileheight)
@@ -144,7 +145,8 @@ while True:
 #            and left_cell.height * tiled_map.data.tileheight <= height_at_foot:
 #                hero._world_pos.x -= HERO_SPEED
 #                hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
-#        elif keys[pygame.K_RIGHT]:
+        elif keys[pygame.K_RIGHT]:
+            pass
 #            next_x = hero._world_pos.x + HERO_SPEED
 #
 #            bottom_x = int((next_x + tiled_map.data.tileheight) // tiled_map.data.tileheight)
@@ -160,7 +162,8 @@ while True:
 #                and right_cell.height * tiled_map.data.tileheight <= height_at_foot:
 #                    hero._world_pos.x += HERO_SPEED
 #                    hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
-#        elif keys[pygame.K_UP]:
+        elif keys[pygame.K_UP]:
+            pass
 #            next_y = hero._world_pos.y - HERO_SPEED
 #
 #            top_y = int(next_y // tiled_map.data.tileheight)
@@ -176,7 +179,8 @@ while True:
 #            and right_cell.height * tiled_map.data.tileheight <= height_at_foot:
 #                hero._world_pos.y = next_y
 #                hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
-#        elif keys[pygame.K_DOWN]:
+        elif keys[pygame.K_DOWN]:
+            pass
 #            next_y = hero._world_pos.y + HERO_SPEED
 #
 #            left_y = int((next_y + tiled_map.data.tileheight) // tiled_map.data.tileheight)
@@ -192,10 +196,10 @@ while True:
 #                and bottom_cell.height * tiled_map.data.tileheight <= height_at_foot:
 #                    hero._world_pos.y += HERO_SPEED
 #                    hero.update_screen_pos(heightmap.left_offset, heightmap.top_offset, camera_x, camera_y)
-#        elif keys[pygame.K_h]:
-#            is_height_map_displayed = not is_height_map_displayed
-#        elif keys[pygame.K_b]:
-#            is_boundbox_displayed = not is_boundbox_displayed
+        elif keys[pygame.K_h]:
+            is_height_map_displayed = not is_height_map_displayed
+        elif keys[pygame.K_b]:
+            is_boundbox_displayed = not is_boundbox_displayed
 #
 #
 #    if keys[pygame.K_SPACE] and hero.touch_ground == True and hero.is_jumping == False:
@@ -223,8 +227,8 @@ while True:
 
             camera_x, camera_y = 0, 0  # Reset camera when changing maps
 
-            #heightmap = Heightmap()
-            #heightmap.load(room_number)
+            heightmap = Heightmap()
+            heightmap.load(room_number)
 
         elif keys[pygame.K_LEFT]:
             if room_number > 1:
@@ -233,8 +237,8 @@ while True:
 
                 camera_x, camera_y = 0, 0  # Reset camera when changing maps
 
-                #heightmap = Heightmap()
-                #heightmap.load(room_number)
+                heightmap = Heightmap()
+                heightmap.load(room_number)
 
 
     # Clear the screen
@@ -244,8 +248,8 @@ while True:
     tiled_map.draw(surface, camera_x, camera_y)
 
     # Draw heightmap (debug)
-    #if debug_mode and is_height_map_displayed:
-    #    draw_heightmap(surface, heightmap, tiled_map.data.tileheight, camera_x, camera_y)
+    if debug_mode and is_height_map_displayed:
+        draw_heightmap(surface, heightmap, tiled_map.data.tileheight, camera_x, camera_y)
 
 
     # Update HUD with debug info
