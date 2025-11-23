@@ -140,8 +140,8 @@ def draw_hero_boundbox(hero, screen, tile_height, camera_x, camera_y, left_offse
     top_x, top_y = cartesian_to_iso(hero._world_pos.x - offset_x, hero._world_pos.y - offset_y)
     right_x, right_y = cartesian_to_iso(hero._world_pos.x + tile_height - offset_x, hero._world_pos.y - offset_y)
 
-    z_top = hero._world_pos.z
-    z_bottom = hero._world_pos.z + hero.HEIGHT * tile_height
+    z_top = hero._world_pos.z - hero.HEIGHT * tile_height
+    z_bottom = hero._world_pos.z + hero.HEIGHT * tile_height - hero.HEIGHT * tile_height
     color = (50, 255, 50)
 
     # Top rectangle
