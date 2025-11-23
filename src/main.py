@@ -9,7 +9,7 @@ from hero import Hero
 from utils import *
 from tiledmap import Tiledmap
 from heightmap import Heightmap
-from debug import draw_hero_boundbox, draw_heightmap
+from debug import draw_hero_boundbox, draw_heightmap, draw_warps
 
 # Constants
 DISPLAY_WIDTH = 320
@@ -39,6 +39,7 @@ class Game:
         # Debug flags
         self.is_height_map_displayed = False
         self.is_boundbox_displayed = False
+        self.is_warps_displayed = False
         self.camera_locked = True  # Camera follows hero by default
         
         # Key state tracking for toggles
@@ -141,6 +142,43 @@ class Game:
                 self.camera_x,
                 self.camera_y
             )
+    
+    def check_warp_collision(self):
+        """Check if hero is colliding with any warp and handle room transition"""
+        tile_h = self.tiled_map.data.tileheight
+        
+        # Get hero's bounding box in world coordinates
+        hero_x = self.hero._world_pos.x
+        hero_y = self.hero._world_pos.y
+        hero_width = tile_h
+        hero_height = tile_h
+        
+        for warp in self.tiled_map.warps:
+            if warp.check_collision(hero_x, hero_y, hero_width, hero_height):
+                target_room = warp.get_target_room(self.room_number)
+                
+                if target_room != self.room_number:
+                    # Load new room
+                    self.room_number = target_room
+                    self.tiled_map.load(self.room_number)
+                    
+                    # Load heightmap for new room
+                    room_map = self.tiled_map.data.properties['RoomMap']
+                    self.heightmap = Heightmap()
+                    self.heightmap.load(room_map)
+                    
+                    # Set hero position to warp destination
+                    dest_x, dest_y = warp.get_destination()
+                    self.hero._world_pos.x = dest_x
+                    self.hero._world_pos.y = dest_y
+                    
+                    # Center camera on hero in new room
+                    self.camera_locked = True
+                    self.center_camera_on_hero()
+                    
+                    return True
+        
+        return False
     
     def apply_gravity(self):
         """Apply gravity to hero"""
@@ -301,6 +339,9 @@ class Game:
             
             if self.is_key_just_pressed(pygame.K_b, keys):
                 self.is_boundbox_displayed = not self.is_boundbox_displayed
+            
+            if self.is_key_just_pressed(pygame.K_w, keys):
+                self.is_warps_displayed = not self.is_warps_displayed
     
     def handle_room_change(self, keys):
         """Handle room changing with CTRL + arrow keys"""
@@ -342,7 +383,7 @@ class Game:
             camera_status = "LOCKED" if self.camera_locked else "FREE"
             
             self.coord_label.set_text(
-                f"X: {self.hero._world_pos.x:.1f}, Y: {self.hero._world_pos.y:.1f}, Z: {world_z:.1f} | "
+                f"Room: {self.room_number} | X: {self.hero._world_pos.x:.1f}, Y: {self.hero._world_pos.y:.1f}, Z: {world_z:.1f} | "
                 f"T X: {tile_x:.0f}, Y: {tile_y:.0f}, Z: {tile_z:.0f} | CAM: {camera_status}"
             )
     
@@ -351,10 +392,7 @@ class Game:
         self.surface.fill((0, 0, 0))
         
         # Draw map
-        self.tiled_map.draw(self.surface, self.camera_x, self.camera_y)
-        
-        # Draw hero
-        self.hero.draw(self.surface)
+        self.tiled_map.draw(self.surface, self.camera_x, self.camera_y, self.hero)
         
         # Debug rendering
         if self.debug_mode:
@@ -376,6 +414,17 @@ class Game:
                     self.camera_y,
                     self.heightmap.left_offset,
                     self.heightmap.top_offset
+                )
+            
+            if self.is_warps_displayed:
+                draw_warps(
+                    self.surface,
+                    self.tiled_map.warps,
+                    self.heightmap,
+                    self.tiled_map.data.tileheight,
+                    self.camera_x,
+                    self.camera_y,
+                    self.room_number
                 )
         
         # Draw GUI
@@ -414,6 +463,7 @@ class Game:
                 self.apply_gravity()
                 self.handle_hero_movement(keys)
                 self.handle_jump(keys)
+                self.check_warp_collision()  # Check for warps after movement
             
             # Update
             self.update_hud()
@@ -423,7 +473,7 @@ class Game:
             self.render()
             
             # Store current key states for next frame
-            self.prev_keys = {k: keys[k] for k in [pygame.K_h, pygame.K_b, pygame.K_LEFT, pygame.K_RIGHT]}
+            self.prev_keys = {k: keys[k] for k in [pygame.K_h, pygame.K_b, pygame.K_w, pygame.K_LEFT, pygame.K_RIGHT]}
         
         pygame.quit()
         sys.exit()
