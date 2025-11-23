@@ -3,7 +3,6 @@ import pygame
 from pytmx.util_pygame import load_pygame
 from pygame.math import Vector2
 
-from hero import Hero
 from utils import cartesian_to_iso, iso_to_cartesian
 
 class Tile:
@@ -49,11 +48,30 @@ class Tiledmap:
         self.data = None
         self.background_layer = None
         self.foreground_layer = None
+        
+        # Map properties
+        self.hmwidth = None
+        self.hmheight = None
+        self.hmleft = None
+        self.hmtop = None
+        self.heightmap = None
+        self.warps = []
 
     def load(self, room_number):
+        print(f"Loading {room_number}")
         tmx_filename = f"data/rooms/Room{room_number:03d}.tmx"
         self.data = load_pygame(tmx_filename)
+        
+        # Load map properties
+        self.hmwidth = int(self.data.properties.get('hmwidth', 0))
+        self.hmheight = int(self.data.properties.get('hmheight', 0))
+        self.hmleft = int(self.data.properties.get('hmleft', 0))
+        self.hmtop = int(self.data.properties.get('hmtop', 0))
+        self.heightmap = self.data.properties.get('heightmap', '')
 
+        print(self.heightmap)
+
+        # Load layers
         self.background_layer = Layer()
         self.background_layer.data = self.data.get_layer_by_name("Background")
         self.populate_layer(self.background_layer)
@@ -62,7 +80,8 @@ class Tiledmap:
         self.foreground_layer.data = self.data.get_layer_by_name("Foreground")
         self.populate_layer(self.foreground_layer)
 
-        warps = []
+        # Load warps
+        self.warps = []
         for warp in self.data.get_layer_by_name('Warps'):
             warp_data = {
                 'room1': int(warp.properties['room1']),
@@ -76,10 +95,8 @@ class Tiledmap:
                 'type': warp.properties['warpType']
             }
             print(warp_data)
-            warps.append(warp_data)
+            self.warps.append(warp_data)
 
-
-        
     def draw(self, surface, camera_x, camera_y):
         self.background_layer.draw(surface, camera_x, camera_y)
 
@@ -88,7 +105,7 @@ class Tiledmap:
                 if tile.has_priority == False:
                     tile.draw(surface, blockset.screen_pos, self.foreground_layer.data.offsetx, camera_x, camera_y)
 
-        #hero.draw(surface)
+        # Hero drawing happens in main loop between foreground layers
         
         for blockset in self.foreground_layer.blocksets:
             for tile in blockset.tiles:
@@ -121,7 +138,7 @@ class Tiledmap:
                 screen_x *= self.data.tilewidth // 2
                 screen_y *= self.data.tileheight // 2
 
-                # instanciate a new blockset
+                # Instantiate a new blockset
                 blockset = Blockset()
                 blockset.grid_pos = Vector2(x, y)
                 blockset.screen_pos = Vector2(screen_x, screen_y)
@@ -134,6 +151,7 @@ class Tiledmap:
                     tile = Tile(offset)
                     tile.image = tile_image.subsurface(sub_tile)
 
+                    # Uncomment these if you have per-tile properties defined
                     # tile.is_hflipped = tile_properties.get(f"isHFlipped{index}", False)
                     # tile.is_vflipped = tile_properties.get(f"isVFlipped{index}", False)
                     # tile.has_priority = tile_properties.get(f"hasPriority{index}", False)

@@ -60,11 +60,10 @@ class Game:
         # Load room
         self.tiled_map = Tiledmap()
         self.tiled_map.load(self.room_number)
-        room_map = self.tiled_map.data.properties['RoomMap']
         
-        # Load heightmap
+        # Load heightmap from tilemap properties
         self.heightmap = Heightmap()
-        self.heightmap.load(room_map)
+        self.heightmap.load_from_tilemap(self.tiled_map)
         
         # Create hero
         self.hero = Hero(args.x, args.y, args.z)
@@ -287,9 +286,9 @@ class Game:
             self.tiled_map.load(self.room_number)
             self.camera_x, self.camera_y = 0, 0
             
-            room_map = self.tiled_map.data.properties['RoomMap']
+            # Reload heightmap from new tilemap
             self.heightmap = Heightmap()
-            self.heightmap.load(room_map)
+            self.heightmap.load_from_tilemap(self.tiled_map)
             
             self.hero.update_screen_pos(
                 self.heightmap.left_offset,
