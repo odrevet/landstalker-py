@@ -8,8 +8,8 @@ class Hero(pygame.sprite.Sprite):
         
         # Try to load image, create placeholder if it doesn't exist
         try:
-            full_image = pygame.image.load('data/gfx/Entity000Nigel.png').convert_alpha()
-            self.image = full_image.subsurface(pygame.Rect(0, 0, 32, 56))
+            full_image = pygame.image.load('data/gfx/SpriteGfx000Anim001.png').convert_alpha()
+            self.image = full_image #.subsurface(pygame.Rect(0, 0, 32, 56))
         except (pygame.error, FileNotFoundError):
             # Create a simple placeholder surface if image doesn't exist
             self.image = pygame.Surface((32, 56), pygame.SRCALPHA)

@@ -7,13 +7,10 @@ A (stub) landstalker for PC, using assets from the megadrive game Landstalker ex
 
 Export using https://github.com/lordmir/landstalker_editor/
 
-**All files goes to the `data` directory**
-
-Some functionalities are only available in branches in this fork at the moment : https://github.com/odrevet/landstalker_editor
+**All assets goes under the `data` directory**
 
 * `Rooms / export all rooms to tmx` and move them to `data/rooms`
-* To enable heightmap (wip background collision) : Export map as csv set (heightmap csv only is needed) and move them to `data/heightmaps`
-* `Entities / export all png` and move pngs to `data/gfx`
+* Select `Sprites / 000 Nigel` then `File / export sprite animation as png` and move `SpriteGfx000Anim001.png` png under `data/gfx`
 
 # Python packages
 
