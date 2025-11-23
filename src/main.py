@@ -39,6 +39,7 @@ class Game:
         # Debug flags
         self.is_height_map_displayed = False
         self.is_boundbox_displayed = False
+        self.camera_locked = True  # Camera follows hero by default
         
         # Key state tracking for toggles
         self.prev_keys = {}
@@ -68,6 +69,24 @@ class Game:
         
         # Create hero
         self.hero = Hero(args.x, args.y, args.z)
+        
+        # Center camera on hero initially
+        self.center_camera_on_hero()
+    
+    def center_camera_on_hero(self):
+        """Center the camera on the hero's position"""
+        self.hero.update_screen_pos(
+            self.heightmap.left_offset,
+            self.heightmap.top_offset,
+            0,  # Use 0,0 for camera to get absolute screen position
+            0
+        )
+        
+        # Center camera on hero
+        self.camera_x = self.hero.screen_pos.x - DISPLAY_HEIGHT // 2
+        self.camera_y = self.hero.screen_pos.y - DISPLAY_WIDTH // 2
+        
+        # Update hero screen position with new camera
         self.hero.update_screen_pos(
             self.heightmap.left_offset,
             self.heightmap.top_offset,
@@ -94,9 +113,12 @@ class Game:
         return True
     
     def handle_camera_movement(self, keys):
-        """Handle camera movement with Shift + arrow keys"""
+        """Handle manual camera movement with Shift + arrow keys (unlocks camera)"""
         if not keys[pygame.K_LSHIFT]:
             return
+        
+        # Manual camera control unlocks the camera
+        self.camera_locked = False
         
         moved = False
         if keys[pygame.K_LEFT]:
@@ -143,12 +165,16 @@ class Game:
                 cells[left_y][left_x].height * tile_h < height_at_foot):
                 
                 self.hero._world_pos.z -= 1
-                self.hero.update_screen_pos(
-                    self.heightmap.left_offset,
-                    self.heightmap.top_offset,
-                    self.camera_x,
-                    self.camera_y
-                )
+                
+                if self.camera_locked:
+                    self.center_camera_on_hero()
+                else:
+                    self.hero.update_screen_pos(
+                        self.heightmap.left_offset,
+                        self.heightmap.top_offset,
+                        self.camera_x,
+                        self.camera_y
+                    )
                 self.hero.touch_ground = False
             else:
                 self.hero.touch_ground = True
@@ -171,6 +197,10 @@ class Game:
         """Handle hero movement"""
         if keys[pygame.K_LSHIFT]:  # Camera mode
             return
+        
+        # Re-lock camera when hero moves
+        if any([keys[pygame.K_LEFT], keys[pygame.K_RIGHT], keys[pygame.K_UP], keys[pygame.K_DOWN]]):
+            self.camera_locked = True
         
         tile_h = self.tiled_map.data.tileheight
         moved = False
@@ -230,12 +260,15 @@ class Game:
                 moved = True
         
         if moved:
-            self.hero.update_screen_pos(
-                self.heightmap.left_offset,
-                self.heightmap.top_offset,
-                self.camera_x,
-                self.camera_y
-            )
+            if self.camera_locked:
+                self.center_camera_on_hero()
+            else:
+                self.hero.update_screen_pos(
+                    self.heightmap.left_offset,
+                    self.heightmap.top_offset,
+                    self.camera_x,
+                    self.camera_y
+                )
     
     def handle_jump(self, keys):
         """Handle hero jumping"""
@@ -246,12 +279,16 @@ class Game:
             if self.hero.current_jump < HERO_MAX_JUMP:
                 self.hero.current_jump += 2
                 self.hero._world_pos.z += 2
-                self.hero.update_screen_pos(
-                    self.heightmap.left_offset,
-                    self.heightmap.top_offset,
-                    self.camera_x,
-                    self.camera_y
-                )
+                
+                if self.camera_locked:
+                    self.center_camera_on_hero()
+                else:
+                    self.hero.update_screen_pos(
+                        self.heightmap.left_offset,
+                        self.heightmap.top_offset,
+                        self.camera_x,
+                        self.camera_y
+                    )
             else:
                 self.hero.is_jumping = False
                 self.hero.current_jump = 0
@@ -285,18 +322,13 @@ class Game:
         
         if room_changed:
             self.tiled_map.load(self.room_number)
-            self.camera_x, self.camera_y = 0, 0
+            self.camera_locked = True
             
             room_map = self.tiled_map.data.properties['RoomMap']
             self.heightmap = Heightmap()
             self.heightmap.load(room_map)
             
-            self.hero.update_screen_pos(
-                self.heightmap.left_offset,
-                self.heightmap.top_offset,
-                self.camera_x,
-                self.camera_y
-            )
+            self.center_camera_on_hero()
     
     def update_hud(self):
         """Update HUD with debug information"""
@@ -307,9 +339,11 @@ class Game:
             tile_y = self.hero._world_pos.y // tile_h
             tile_z = world_z // tile_h
             
+            camera_status = "LOCKED" if self.camera_locked else "FREE"
+            
             self.coord_label.set_text(
                 f"X: {self.hero._world_pos.x:.1f}, Y: {self.hero._world_pos.y:.1f}, Z: {world_z:.1f} | "
-                f"T X: {tile_x:.0f}, Y: {tile_y:.0f}, Z: {tile_z:.0f}"
+                f"T X: {tile_x:.0f}, Y: {tile_y:.0f}, Z: {tile_z:.0f} | CAM: {camera_status}"
             )
     
     def render(self):
