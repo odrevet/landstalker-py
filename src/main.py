@@ -37,9 +37,9 @@ class Game:
         self.clock = pygame.time.Clock()
         
         # Debug flags
-        self.is_height_map_displayed = False
-        self.is_boundbox_displayed = False
-        self.is_warps_displayed = False
+        self.is_height_map_displayed = True
+        self.is_boundbox_displayed = True
+        self.is_warps_displayed = True
         self.camera_locked = True  # Camera follows hero by default
         
         # Key state tracking for toggles

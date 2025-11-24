@@ -55,6 +55,7 @@ class Tiledmap:
 
     def load(self, room_number):
         tmx_filename = f"data/rooms/Room{room_number:03d}.tmx"
+        print(f"loading {tmx_filename}")
         self.data = load_pygame(tmx_filename)
 
         self.background_layer = Layer()

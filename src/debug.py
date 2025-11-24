@@ -174,8 +174,8 @@ def draw_warps(screen, warps, heightmap, tile_h, camera_x, camera_y, current_roo
     """Draw all warps for debugging"""
     
     # Precompute offsets
-    off_x = (heightmap.left_offset - 12) * tile_h
-    off_y = (heightmap.top_offset - 11) * tile_h
+    off_x = (heightmap.left_offset) * tile_h
+    off_y = (heightmap.top_offset) * tile_h
     
     def iso_point(wx, wy):
         """Convert world Cartesian → isometric pixel coords."""
@@ -186,16 +186,18 @@ def draw_warps(screen, warps, heightmap, tile_h, camera_x, camera_y, current_roo
     
     for warp in warps:
         # Determine color based on which room this warp leads from
-        if warp.room1 == current_room:
-            color = (0, 200, 255)  # Cyan - warp from current room
-        else:
-            color = (255, 100, 0)  # Orange - warp from other room
+        if warp.room1 != current_room:
+            continue
         
+        color = (0, 200, 255)  # Cyan - warp from current room
+
+        print(f"{warp.x} {warp.y} | {warp.x2} {warp.y2}")
+
         # Warp rectangle corners (already in pixel coordinates from Tiled)
-        p1 = iso_point(warp.x, warp.y)
-        p2 = iso_point(warp.x + warp.width, warp.y)
-        p3 = iso_point(warp.x + warp.width, warp.y + warp.height)
-        p4 = iso_point(warp.x, warp.y + warp.height)
+        p1 = iso_point(warp.x * tile_h, warp.y * tile_h)
+        p2 = iso_point(warp.x  * tile_h + warp.width  * tile_h, warp.y * tile_h)
+        p3 = iso_point(warp.x  * tile_h+ warp.width * tile_h, warp.y * tile_h + warp.height * tile_h)
+        p4 = iso_point(warp.x * tile_h, warp.y  * tile_h+ warp.height * tile_h)
         
         # Draw warp zone rectangle
         pygame.draw.lines(screen, color, True, [p1, p2, p3, p4])
@@ -209,25 +211,3 @@ def draw_warps(screen, warps, heightmap, tile_h, camera_x, camera_y, current_roo
         pos_label = f"({warp.x},{warp.y}) {warp.width}x{warp.height}"
         pos_surf = font.render(pos_label, True, (150, 150, 255))
         screen.blit(pos_surf, (p1[0] + 2, p1[1] + 2))
-        
-        # Draw destination marker (in green)
-        dest_color = (0, 255, 0)
-        dp = iso_point(warp.x2, warp.y2)
-        
-        # Draw crosshair at destination
-        cross_size = 8
-        pygame.draw.line(screen, dest_color,
-                        (dp[0] - cross_size, dp[1]),
-                        (dp[0] + cross_size, dp[1]), 2)
-        pygame.draw.line(screen, dest_color,
-                        (dp[0], dp[1] - cross_size),
-                        (dp[0], dp[1] + cross_size), 2)
-        
-        # Draw destination coordinates
-        dest_label = f"→({warp.x2},{warp.y2})"
-        dest_surf = font.render(dest_label, True, dest_color)
-        screen.blit(dest_surf, (dp[0] + 10, dp[1] - 6))
-        
-        # Draw line from warp to destination
-        center = ((p1[0] + p3[0]) // 2, (p1[1] + p3[1]) // 2)
-        pygame.draw.line(screen, (100, 100, 100), center, dp, 1)
