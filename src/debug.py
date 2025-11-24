@@ -185,19 +185,26 @@ def draw_warps(screen, warps, heightmap, tile_h, camera_x, camera_y, current_roo
     font = pygame.font.SysFont("Arial", 10)
     
     for warp in warps:
-        # Determine color based on which room this warp leads from
-        if warp.room1 != current_room:
-            continue
+        x = 0
+        y = 0
+
+        if warp.room1 == current_room:
+            x = warp.x
+            y = warp.y
+        else:
+            x = warp.x2
+            y = warp.y2
+
         
-        color = (0, 200, 255)  # Cyan - warp from current room
+        color = (0, 200, 255)
 
         print(f"{warp.x} {warp.y} | {warp.x2} {warp.y2}")
 
         # Warp rectangle corners (already in pixel coordinates from Tiled)
-        p1 = iso_point(warp.x * tile_h, warp.y * tile_h)
-        p2 = iso_point(warp.x  * tile_h + warp.width  * tile_h, warp.y * tile_h)
-        p3 = iso_point(warp.x  * tile_h+ warp.width * tile_h, warp.y * tile_h + warp.height * tile_h)
-        p4 = iso_point(warp.x * tile_h, warp.y  * tile_h+ warp.height * tile_h)
+        p1 = iso_point(x * tile_h, y * tile_h)
+        p2 = iso_point(x  * tile_h + warp.width  * tile_h, y * tile_h)
+        p3 = iso_point(x  * tile_h+ warp.width * tile_h, y * tile_h + warp.height * tile_h)
+        p4 = iso_point(x * tile_h, y  * tile_h+ warp.height * tile_h)
         
         # Draw warp zone rectangle
         pygame.draw.lines(screen, color, True, [p1, p2, p3, p4])
@@ -208,6 +215,6 @@ def draw_warps(screen, warps, heightmap, tile_h, camera_x, camera_y, current_roo
         screen.blit(text_surf, (p1[0] + 2, p1[1] - 12))
         
         # Position and size info
-        pos_label = f"({warp.x},{warp.y}) {warp.width}x{warp.height}"
+        pos_label = f"({x},{y}) {warp.width}x{warp.height}"
         pos_surf = font.render(pos_label, True, (150, 150, 255))
         screen.blit(pos_surf, (p1[0] + 2, p1[1] + 2))
