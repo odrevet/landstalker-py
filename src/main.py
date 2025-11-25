@@ -37,9 +37,10 @@ class Game:
         self.clock = pygame.time.Clock()
         
         # Debug flags
-        self.is_height_map_displayed = True
-        self.is_boundbox_displayed = True
-        self.is_warps_displayed = True
+        self.is_debug_draw_enabled = False
+        self.is_height_map_displayed = False
+        self.is_boundbox_displayed = False
+        self.is_warps_displayed = False
         self.camera_locked = True  # Camera follows hero by default
         
         # Key state tracking for toggles
@@ -71,8 +72,47 @@ class Game:
         # Create hero
         self.hero = Hero(args.x, args.y, args.z)
         
+        # Validate and fix hero spawn position
+        self.fix_hero_spawn_position()
+        
         # Center camera on hero initially
         self.center_camera_on_hero()
+    
+    def fix_hero_spawn_position(self):
+        """Fix hero position if spawned in invalid location"""
+        tile_h = self.tiled_map.data.tileheight
+        
+        # Check if hero is out of bounds
+        hero_tile_x = int(self.hero._world_pos.x // tile_h)
+        hero_tile_y = int(self.hero._world_pos.y // tile_h)
+        
+        # If out of bounds or on unwalkable tile, find first walkable tile
+        if (hero_tile_x < 0 or hero_tile_y < 0 or
+            hero_tile_x >= self.heightmap.get_width() or
+            hero_tile_y >= self.heightmap.get_height() or
+            not self.heightmap.get_cell(hero_tile_x, hero_tile_y) or
+            not self.heightmap.get_cell(hero_tile_x, hero_tile_y).is_walkable()):
+            
+            # Find first walkable tile
+            for y in range(self.heightmap.get_height()):
+                for x in range(self.heightmap.get_width()):
+                    cell = self.heightmap.get_cell(x, y)
+                    if cell and cell.is_walkable():
+                        # Move hero to center of this tile
+                        self.hero._world_pos.x = x * tile_h + tile_h // 2
+                        self.hero._world_pos.y = y * tile_h + tile_h // 2
+                        self.hero._world_pos.z = cell.height * tile_h
+                        print(f"Hero spawned at invalid position, moved to first walkable tile: ({x}, {y})")
+                        return
+        
+        # Hero is in bounds, check if Z is correct
+        cell = self.heightmap.get_cell(hero_tile_x, hero_tile_y)
+        if cell:
+            ground_height = cell.height * tile_h
+            # If hero is below ground, place on ground
+            if self.hero._world_pos.z < ground_height:
+                self.hero._world_pos.z = ground_height
+                print(f"Hero was below ground, moved to ground level: Z={ground_height}")
     
     def center_camera_on_hero(self):
         """Center the camera on the hero's position"""
@@ -154,7 +194,7 @@ class Game:
         hero_height = tile_h
         
         for warp in self.tiled_map.warps:
-            if warp.check_collision(hero_x, hero_y, hero_width, hero_height):
+            if warp.check_collision(hero_x, hero_y, hero_width, hero_height, tile_h, self.tiled_map.room_number, self.heightmap):
                 target_room = warp.get_target_room(self.room_number)
                 
                 if target_room != self.room_number:
@@ -334,14 +374,8 @@ class Game:
     def handle_debug_toggles(self, keys):
         """Handle debug flag toggles"""
         if self.debug_mode:
-            if self.is_key_just_pressed(pygame.K_h, keys):
-                self.is_height_map_displayed = not self.is_height_map_displayed
-            
-            if self.is_key_just_pressed(pygame.K_b, keys):
-                self.is_boundbox_displayed = not self.is_boundbox_displayed
-            
-            if self.is_key_just_pressed(pygame.K_w, keys):
-                self.is_warps_displayed = not self.is_warps_displayed
+            if self.is_key_just_pressed(pygame.K_d, keys):
+                self.is_debug_draw_enabled = not self.is_debug_draw_enabled
     
     def handle_room_change(self, keys):
         """Handle room changing with CTRL + arrow keys"""
@@ -395,37 +429,34 @@ class Game:
         self.tiled_map.draw(self.surface, self.camera_x, self.camera_y, self.hero)
         
         # Debug rendering
-        if self.debug_mode:
-            if self.is_height_map_displayed:
-                draw_heightmap(
-                    self.surface,
-                    self.heightmap,
-                    self.tiled_map.data.tileheight,
-                    self.camera_x,
-                    self.camera_y
-                )
+        if self.debug_mode and self.is_debug_draw_enabled:
+            draw_heightmap(
+                self.surface,
+                self.heightmap,
+                self.tiled_map.data.tileheight,
+                self.camera_x,
+                self.camera_y
+            )
             
-            if self.is_boundbox_displayed:
-                draw_hero_boundbox(
-                    self.hero,
-                    self.surface,
-                    self.tiled_map.data.tileheight,
-                    self.camera_x,
-                    self.camera_y,
-                    self.heightmap.left_offset,
-                    self.heightmap.top_offset
-                )
+            draw_hero_boundbox(
+                self.hero,
+                self.surface,
+                self.tiled_map.data.tileheight,
+                self.camera_x,
+                self.camera_y,
+                self.heightmap.left_offset,
+                self.heightmap.top_offset
+            )
             
-            if self.is_warps_displayed:
-                draw_warps(
-                    self.surface,
-                    self.tiled_map.warps,
-                    self.heightmap,
-                    self.tiled_map.data.tileheight,
-                    self.camera_x,
-                    self.camera_y,
-                    self.room_number
-                )
+            draw_warps(
+                self.surface,
+                self.tiled_map.warps,
+                self.heightmap,
+                self.tiled_map.data.tileheight,
+                self.camera_x,
+                self.camera_y,
+                self.room_number
+            )
         
         # Draw GUI
         self.manager.draw_ui(self.surface)
@@ -473,7 +504,7 @@ class Game:
             self.render()
             
             # Store current key states for next frame
-            self.prev_keys = {k: keys[k] for k in [pygame.K_h, pygame.K_b, pygame.K_w, pygame.K_LEFT, pygame.K_RIGHT]}
+            self.prev_keys = {k: keys[k] for k in [pygame.K_d, pygame.K_LEFT, pygame.K_RIGHT]}
         
         pygame.quit()
         sys.exit()

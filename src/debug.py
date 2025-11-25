@@ -198,14 +198,12 @@ def draw_warps(screen, warps, heightmap, tile_h, camera_x, camera_y, current_roo
         
         color = (0, 200, 255)
 
-        print(f"{warp.x} {warp.y} | {warp.x2} {warp.y2}")
-
         # Warp rectangle corners (already in pixel coordinates from Tiled)
         p1 = iso_point(x * tile_h, y * tile_h)
         p2 = iso_point(x  * tile_h + warp.width  * tile_h, y * tile_h)
         p3 = iso_point(x  * tile_h+ warp.width * tile_h, y * tile_h + warp.height * tile_h)
         p4 = iso_point(x * tile_h, y  * tile_h+ warp.height * tile_h)
-        
+    
         # Draw warp zone rectangle
         pygame.draw.lines(screen, color, True, [p1, p2, p3, p4])
         
