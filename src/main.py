@@ -1,5 +1,6 @@
 import sys
 import argparse
+from typing import List, Tuple, Optional
 
 import pygame
 import pygame_gui
@@ -8,69 +9,70 @@ from pygame_gui.elements.ui_text_box import UITextBox
 from hero import Hero
 from utils import *
 from tiledmap import Tiledmap
-from heightmap import Heightmap
+from heightmap import Heightmap, HeightmapCell
 from debug import draw_hero_boundbox, draw_heightmap, draw_warps
 
 # Constants
-DISPLAY_WIDTH = 320
-DISPLAY_HEIGHT = 448
-CAMERA_SPEED = 5
-GRAVITY = 2
-HERO_SPEED = 1.75
-HERO_MAX_JUMP = 16
-FPS = 60
+DISPLAY_WIDTH: int = 320
+DISPLAY_HEIGHT: int = 448
+CAMERA_SPEED: int = 5
+GRAVITY: int = 2
+HERO_SPEED: float = 1.75
+HERO_MAX_JUMP: int = 16
+FPS: int = 60
 
 
 class Game:
-    def __init__(self, args):
+    def __init__(self, args: argparse.Namespace) -> None:
         pygame.init()
         
         # Display setup
-        self.screen = pygame.display.set_mode((DISPLAY_HEIGHT, DISPLAY_WIDTH), pygame.RESIZABLE)
-        self.surface = pygame.Surface((DISPLAY_HEIGHT, DISPLAY_WIDTH))
+        self.screen: pygame.Surface = pygame.display.set_mode((DISPLAY_HEIGHT, DISPLAY_WIDTH), pygame.RESIZABLE)
+        self.surface: pygame.Surface = pygame.Surface((DISPLAY_HEIGHT, DISPLAY_WIDTH))
         pygame.display.set_caption("LandStalker")
         
         # Game state
-        self.room_number = args.room
-        self.debug_mode = args.debug
-        self.camera_x, self.camera_y = 0, 0
-        self.clock = pygame.time.Clock()
+        self.room_number: int = args.room
+        self.debug_mode: bool = args.debug
+        self.camera_x: float = 0
+        self.camera_y: float = 0
+        self.clock: pygame.time.Clock = pygame.time.Clock()
         
         # Debug flags
-        self.is_debug_draw_enabled = False
-        self.is_height_map_displayed = False
-        self.is_boundbox_displayed = False
-        self.is_warps_displayed = False
-        self.camera_locked = True  # Camera follows hero by default
+        self.is_debug_draw_enabled: bool = False
+        self.is_height_map_displayed: bool = False
+        self.is_boundbox_displayed: bool = False
+        self.is_warps_displayed: bool = False
+        self.camera_locked: bool = True  # Camera follows hero by default
         
         # Key state tracking for toggles
-        self.prev_keys = {}
+        self.prev_keys: dict = {}
         
         # GUI setup
-        self.manager = pygame_gui.UIManager((800, 600), "ui.json")
-        self.hud_textbox = UITextBox(
+        self.manager: pygame_gui.UIManager = pygame_gui.UIManager((800, 600), "ui.json")
+        self.hud_textbox: UITextBox = UITextBox(
             "",
             pygame.Rect((0, 0), (450, 36)),
             manager=self.manager,
             object_id="#hud_textbox",
         )
-        self.coord_label = pygame_gui.elements.UILabel(
+        self.coord_label: pygame_gui.elements.UILabel = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect((10, 2), (-1, -1)),
             text="",
             manager=self.manager
         )
         
         # Load room
-        self.tiled_map = Tiledmap()
+        self.tiled_map: Tiledmap = Tiledmap()
         self.tiled_map.load(self.room_number)
-        room_map = self.tiled_map.data.properties['RoomMap']
+        room_map: str = self.tiled_map.data.properties['RoomMap']
         
         # Load heightmap
-        self.heightmap = Heightmap()
+        self.heightmap: Heightmap = Heightmap()
         self.heightmap.load(room_map)
         
         # Create hero
-        self.hero = Hero(args.x, args.y, args.z)
+        self.hero: Hero = Hero(args.x, args.y, args.z)
         
         # Validate and fix hero spawn position
         self.fix_hero_spawn_position()
@@ -78,13 +80,14 @@ class Game:
         # Center camera on hero initially
         self.center_camera_on_hero()
     
-    def fix_hero_spawn_position(self):
+    def fix_hero_spawn_position(self) -> None:
         """Fix hero position if spawned in invalid location"""
-        tile_h = self.tiled_map.data.tileheight
+        tile_h: int = self.tiled_map.data.tileheight
         
         # Check if hero is out of bounds
-        hero_tile_x = int(self.hero._world_pos.x // tile_h)
-        hero_tile_y = int(self.hero._world_pos.y // tile_h)
+        hero_pos = self.hero.get_world_pos()
+        hero_tile_x: int = int(hero_pos.x // tile_h)
+        hero_tile_y: int = int(hero_pos.y // tile_h)
         
         # If out of bounds or on unwalkable tile, find first walkable tile
         if (hero_tile_x < 0 or hero_tile_y < 0 or
@@ -96,27 +99,40 @@ class Game:
             # Find first walkable tile
             for y in range(self.heightmap.get_height()):
                 for x in range(self.heightmap.get_width()):
-                    cell = self.heightmap.get_cell(x, y)
+                    cell: Optional[HeightmapCell] = self.heightmap.get_cell(x, y)
                     if cell and cell.is_walkable():
                         # Move hero to center of this tile
-                        self.hero._world_pos.x = x * tile_h + tile_h // 2
-                        self.hero._world_pos.y = y * tile_h + tile_h // 2
-                        self.hero._world_pos.z = cell.height * tile_h
+                        new_x: float = x * tile_h + tile_h // 2
+                        new_y: float = y * tile_h + tile_h // 2
+                        new_z: float = cell.height * tile_h
+                        self.hero.set_world_pos(
+                            new_x, new_y, new_z,
+                            self.heightmap.left_offset,
+                            self.heightmap.top_offset,
+                            self.camera_x,
+                            self.camera_y
+                        )
                         print(f"Hero spawned at invalid position, moved to first walkable tile: ({x}, {y})")
                         return
         
         # Hero is in bounds, check if Z is correct
-        cell = self.heightmap.get_cell(hero_tile_x, hero_tile_y)
+        cell: Optional[HeightmapCell] = self.heightmap.get_cell(hero_tile_x, hero_tile_y)
         if cell:
-            ground_height = cell.height * tile_h
+            ground_height: float = cell.height * tile_h
             # If hero is below ground, place on ground
-            if self.hero._world_pos.z < ground_height:
-                self.hero._world_pos.z = ground_height
+            if hero_pos.z < ground_height:
+                self.hero.set_world_pos(
+                    hero_pos.x, hero_pos.y, ground_height,
+                    self.heightmap.left_offset,
+                    self.heightmap.top_offset,
+                    self.camera_x,
+                    self.camera_y
+                )
                 print(f"Hero was below ground, moved to ground level: Z={ground_height}")
     
-    def center_camera_on_hero(self):
+    def center_camera_on_hero(self) -> None:
         """Center the camera on the hero's position"""
-        self.hero.update_screen_pos(
+        self.hero.update_camera(
             self.heightmap.left_offset,
             self.heightmap.top_offset,
             0,  # Use 0,0 for camera to get absolute screen position
@@ -124,24 +140,24 @@ class Game:
         )
         
         # Center camera on hero
-        self.camera_x = self.hero.screen_pos.x - DISPLAY_HEIGHT // 2
-        self.camera_y = self.hero.screen_pos.y - DISPLAY_WIDTH // 2
+        self.camera_x = self.hero._screen_pos.x - DISPLAY_HEIGHT // 2
+        self.camera_y = self.hero._screen_pos.y - DISPLAY_WIDTH // 2
         
         # Update hero screen position with new camera
-        self.hero.update_screen_pos(
+        self.hero.update_camera(
             self.heightmap.left_offset,
             self.heightmap.top_offset,
             self.camera_x,
             self.camera_y
         )
     
-    def is_key_just_pressed(self, key, keys):
+    def is_key_just_pressed(self, key: int, keys: pygame.key.ScancodeWrapper) -> bool:
         """Check if a key was just pressed (not held)"""
-        was_pressed = self.prev_keys.get(key, False)
-        is_pressed = keys[key]
+        was_pressed: bool = self.prev_keys.get(key, False)
+        is_pressed: bool = keys[key]
         return is_pressed and not was_pressed
     
-    def handle_events(self):
+    def handle_events(self) -> bool:
         """Handle pygame events"""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -153,7 +169,7 @@ class Game:
         
         return True
     
-    def handle_camera_movement(self, keys):
+    def handle_camera_movement(self, keys: pygame.key.ScancodeWrapper) -> None:
         """Handle manual camera movement with Shift + arrow keys (unlocks camera)"""
         if not keys[pygame.K_LSHIFT]:
             return
@@ -161,7 +177,7 @@ class Game:
         # Manual camera control unlocks the camera
         self.camera_locked = False
         
-        moved = False
+        moved: bool = False
         if keys[pygame.K_LEFT]:
             self.camera_x -= CAMERA_SPEED
             moved = True
@@ -176,26 +192,27 @@ class Game:
             moved = True
         
         if moved:
-            self.hero.update_screen_pos(
+            self.hero.update_camera(
                 self.heightmap.left_offset,
                 self.heightmap.top_offset,
                 self.camera_x,
                 self.camera_y
             )
     
-    def check_warp_collision(self):
+    def check_warp_collision(self) -> bool:
         """Check if hero is colliding with any warp and handle room transition"""
-        tile_h = self.tiled_map.data.tileheight
+        tile_h: int = self.tiled_map.data.tileheight
         
         # Get hero's bounding box in world coordinates
-        hero_x = self.hero._world_pos.x
-        hero_y = self.hero._world_pos.y
-        hero_width = tile_h
-        hero_height = tile_h
+        hero_pos = self.hero.get_world_pos()
+        hero_x: float = hero_pos.x
+        hero_y: float = hero_pos.y
+        hero_width: int = tile_h
+        hero_height: int = tile_h
         
         for warp in self.tiled_map.warps:
             if warp.check_collision(hero_x, hero_y, hero_width, hero_height, tile_h, self.tiled_map.room_number, self.heightmap):
-                target_room = warp.get_target_room(self.room_number)
+                target_room: int = warp.get_target_room(self.room_number)
                 
                 if target_room != self.room_number:
                     # Load new room
@@ -203,14 +220,28 @@ class Game:
                     self.tiled_map.load(self.room_number)
                     
                     # Load heightmap for new room
-                    room_map = self.tiled_map.data.properties['RoomMap']
+                    room_map: str = self.tiled_map.data.properties['RoomMap']
                     self.heightmap = Heightmap()
                     self.heightmap.load(room_map)
                     
                     # Set hero position to warp destination
+                    dest_x: float
+                    dest_y: float
                     dest_x, dest_y = warp.get_destination(tile_h, self.room_number, self.heightmap)
-                    self.hero._world_pos.x = dest_x
-                    self.hero._world_pos.y = dest_y
+                    
+                    # Get current Z or use ground height at destination
+                    dest_tile_x: int = int(dest_x // tile_h)
+                    dest_tile_y: int = int(dest_y // tile_h)
+                    dest_cell: Optional[HeightmapCell] = self.heightmap.get_cell(dest_tile_x, dest_tile_y)
+                    dest_z: float = dest_cell.height * tile_h if dest_cell else 0
+                    
+                    self.hero.set_world_pos(
+                        dest_x, dest_y, dest_z,
+                        self.heightmap.left_offset,
+                        self.heightmap.top_offset,
+                        self.camera_x,
+                        self.camera_y
+                    )
                     
                     # Center camera on hero in new room
                     self.camera_locked = True
@@ -220,19 +251,20 @@ class Game:
         
         return False
     
-    def apply_gravity(self):
+    def apply_gravity(self) -> None:
         """Apply gravity to hero"""
-        height_at_foot = self.hero._world_pos.z + self.hero.HEIGHT * self.tiled_map.data.tileheight
+        hero_pos = self.hero.get_world_pos()
+        height_at_foot: float = hero_pos.z + self.hero.HEIGHT * self.tiled_map.data.tileheight
         
-        tile_h = self.tiled_map.data.tileheight
-        left_x = int(self.hero._world_pos.x // tile_h)
-        left_y = int((self.hero._world_pos.y + tile_h) // tile_h)
-        bottom_x = int((self.hero._world_pos.x + tile_h) // tile_h)
-        bottom_y = int((self.hero._world_pos.y + tile_h) // tile_h)
-        top_x = int(self.hero._world_pos.x // tile_h)
-        top_y = int(self.hero._world_pos.y // tile_h)
-        right_x = int((self.hero._world_pos.x + tile_h) // tile_h)
-        right_y = int(self.hero._world_pos.y // tile_h)
+        tile_h: int = self.tiled_map.data.tileheight
+        left_x: int = int(hero_pos.x // tile_h)
+        left_y: int = int((hero_pos.y + tile_h) // tile_h)
+        bottom_x: int = int((hero_pos.x + tile_h) // tile_h)
+        bottom_y: int = int((hero_pos.y + tile_h) // tile_h)
+        top_x: int = int(hero_pos.x // tile_h)
+        top_y: int = int(hero_pos.y // tile_h)
+        right_x: int = int((hero_pos.x + tile_h) // tile_h)
+        right_y: int = int(hero_pos.y // tile_h)
         
         # Check if hero is above ground
         if not self.hero.is_jumping:
@@ -242,28 +274,30 @@ class Game:
                 cells[right_y][right_x].height * tile_h < height_at_foot and
                 cells[left_y][left_x].height * tile_h < height_at_foot):
                 
-                self.hero._world_pos.z -= 1
+                new_z: float = hero_pos.z - 1
+                self.hero.set_world_pos(
+                    hero_pos.x, hero_pos.y, new_z,
+                    self.heightmap.left_offset,
+                    self.heightmap.top_offset,
+                    self.camera_x,
+                    self.camera_y
+                )
                 
                 if self.camera_locked:
                     self.center_camera_on_hero()
-                else:
-                    self.hero.update_screen_pos(
-                        self.heightmap.left_offset,
-                        self.heightmap.top_offset,
-                        self.camera_x,
-                        self.camera_y
-                    )
+                
                 self.hero.touch_ground = False
             else:
                 self.hero.touch_ground = True
     
-    def can_move_to(self, next_x, next_y, check_cells):
+    def can_move_to(self, next_x: float, next_y: float, check_cells: List[Tuple[int, int]]) -> bool:
         """Check if hero can move to the given position"""
-        height_at_foot = self.hero._world_pos.z + self.hero.HEIGHT * self.tiled_map.data.tileheight
-        tile_h = self.tiled_map.data.tileheight
+        hero_pos = self.hero.get_world_pos()
+        height_at_foot: float = hero_pos.z + self.hero.HEIGHT * self.tiled_map.data.tileheight
+        tile_h: int = self.tiled_map.data.tileheight
         
         for cell_x, cell_y in check_cells:
-            cell = self.heightmap.get_cell(cell_x, cell_y)
+            cell: Optional[HeightmapCell] = self.heightmap.get_cell(cell_x, cell_y)
             if not cell or not cell.is_walkable():
                 return False
             if cell.height * tile_h > height_at_foot:
@@ -271,7 +305,7 @@ class Game:
         
         return True
     
-    def handle_hero_movement(self, keys):
+    def handle_hero_movement(self, keys: pygame.key.ScancodeWrapper) -> None:
         """Handle hero movement"""
         if keys[pygame.K_LSHIFT]:  # Camera mode
             return
@@ -280,104 +314,110 @@ class Game:
         if any([keys[pygame.K_LEFT], keys[pygame.K_RIGHT], keys[pygame.K_UP], keys[pygame.K_DOWN]]):
             self.camera_locked = True
         
-        tile_h = self.tiled_map.data.tileheight
-        moved = False
+        hero_pos = self.hero.get_world_pos()
+        tile_h: int = self.tiled_map.data.tileheight
+        moved: bool = False
         
         # Calculate current tile positions
-        left_x = int(self.hero._world_pos.x // tile_h)
-        left_y = int((self.hero._world_pos.y + tile_h) // tile_h)
-        bottom_x = int((self.hero._world_pos.x + tile_h) // tile_h)
-        bottom_y = int((self.hero._world_pos.y + tile_h) // tile_h)
-        top_x = int(self.hero._world_pos.x // tile_h)
-        top_y = int(self.hero._world_pos.y // tile_h)
-        right_x = int((self.hero._world_pos.x + tile_h) // tile_h)
-        right_y = int(self.hero._world_pos.y // tile_h)
+        left_x: int = int(hero_pos.x // tile_h)
+        left_y: int = int((hero_pos.y + tile_h) // tile_h)
+        bottom_x: int = int((hero_pos.x + tile_h) // tile_h)
+        bottom_y: int = int((hero_pos.y + tile_h) // tile_h)
+        top_x: int = int(hero_pos.x // tile_h)
+        top_y: int = int(hero_pos.y // tile_h)
+        right_x: int = int((hero_pos.x + tile_h) // tile_h)
+        right_y: int = int(hero_pos.y // tile_h)
+        
+        new_x: float = hero_pos.x
+        new_y: float = hero_pos.y
         
         if keys[pygame.K_LEFT]:
-            next_x = self.hero._world_pos.x - HERO_SPEED
-            new_top_x = int(next_x // tile_h)
-            new_left_x = int(next_x // tile_h)
+            next_x: float = hero_pos.x - HERO_SPEED
+            new_top_x: int = int(next_x // tile_h)
+            new_left_x: int = int(next_x // tile_h)
             
-            if next_x > 0 and self.can_move_to(next_x, self.hero._world_pos.y, [
+            if next_x > 0 and self.can_move_to(next_x, hero_pos.y, [
                 (new_top_x, top_y), (new_left_x, left_y)
             ]):
-                self.hero._world_pos.x = next_x
+                new_x = next_x
                 moved = True
         
         elif keys[pygame.K_RIGHT]:
-            next_x = self.hero._world_pos.x + HERO_SPEED
-            new_bottom_x = int((next_x + tile_h) // tile_h)
-            new_right_x = int((next_x + tile_h) // tile_h)
+            next_x: float = hero_pos.x + HERO_SPEED
+            new_bottom_x: int = int((next_x + tile_h) // tile_h)
+            new_right_x: int = int((next_x + tile_h) // tile_h)
             
             if new_right_x < self.heightmap.get_width() and self.can_move_to(
-                next_x, self.hero._world_pos.y, [(new_bottom_x, bottom_y), (new_right_x, right_y)]
+                next_x, hero_pos.y, [(new_bottom_x, bottom_y), (new_right_x, right_y)]
             ):
-                self.hero._world_pos.x = next_x
+                new_x = next_x
                 moved = True
         
         elif keys[pygame.K_UP]:
-            next_y = self.hero._world_pos.y - HERO_SPEED
-            new_top_y = int(next_y // tile_h)
-            new_right_y = int(next_y // tile_h)
+            next_y: float = hero_pos.y - HERO_SPEED
+            new_top_y: int = int(next_y // tile_h)
+            new_right_y: int = int(next_y // tile_h)
             
-            if next_y > 0 and self.can_move_to(self.hero._world_pos.x, next_y, [
+            if next_y > 0 and self.can_move_to(hero_pos.x, next_y, [
                 (top_x, new_top_y), (right_x, new_right_y)
             ]):
-                self.hero._world_pos.y = next_y
+                new_y = next_y
                 moved = True
         
         elif keys[pygame.K_DOWN]:
-            next_y = self.hero._world_pos.y + HERO_SPEED
-            new_left_y = int((next_y + tile_h) // tile_h)
-            new_bottom_y = int((next_y + tile_h) // tile_h)
+            next_y: float = hero_pos.y + HERO_SPEED
+            new_left_y: int = int((next_y + tile_h) // tile_h)
+            new_bottom_y: int = int((next_y + tile_h) // tile_h)
             
             if new_left_y < self.heightmap.get_height() and self.can_move_to(
-                self.hero._world_pos.x, next_y, [(left_x, new_left_y), (bottom_x, new_bottom_y)]
+                hero_pos.x, next_y, [(left_x, new_left_y), (bottom_x, new_bottom_y)]
             ):
-                self.hero._world_pos.y = next_y
+                new_y = next_y
                 moved = True
         
         if moved:
+            self.hero.set_world_pos(
+                new_x, new_y, hero_pos.z,
+                self.heightmap.left_offset,
+                self.heightmap.top_offset,
+                self.camera_x,
+                self.camera_y
+            )
+            
             if self.camera_locked:
                 self.center_camera_on_hero()
-            else:
-                self.hero.update_screen_pos(
-                    self.heightmap.left_offset,
-                    self.heightmap.top_offset,
-                    self.camera_x,
-                    self.camera_y
-                )
     
-    def handle_jump(self, keys):
+    def handle_jump(self, keys: pygame.key.ScancodeWrapper) -> None:
         """Handle hero jumping"""
         if keys[pygame.K_SPACE] and self.hero.touch_ground and not self.hero.is_jumping:
             self.hero.is_jumping = True
         
         if self.hero.is_jumping:
+            hero_pos = self.hero.get_world_pos()
             if self.hero.current_jump < HERO_MAX_JUMP:
                 self.hero.current_jump += 2
-                self.hero._world_pos.z += 2
+                new_z: float = hero_pos.z + 2
+                self.hero.set_world_pos(
+                    hero_pos.x, hero_pos.y, new_z,
+                    self.heightmap.left_offset,
+                    self.heightmap.top_offset,
+                    self.camera_x,
+                    self.camera_y
+                )
                 
                 if self.camera_locked:
                     self.center_camera_on_hero()
-                else:
-                    self.hero.update_screen_pos(
-                        self.heightmap.left_offset,
-                        self.heightmap.top_offset,
-                        self.camera_x,
-                        self.camera_y
-                    )
             else:
                 self.hero.is_jumping = False
                 self.hero.current_jump = 0
     
-    def handle_debug_toggles(self, keys):
+    def handle_debug_toggles(self, keys: pygame.key.ScancodeWrapper) -> None:
         """Handle debug flag toggles"""
         if self.debug_mode:
             if self.is_key_just_pressed(pygame.K_d, keys):
                 self.is_debug_draw_enabled = not self.is_debug_draw_enabled
     
-    def handle_room_change(self, keys):
+    def handle_room_change(self, keys: pygame.key.ScancodeWrapper) -> None:
         """Handle room changing with CTRL + arrow keys"""
         if not self.debug_mode:
             return
@@ -385,7 +425,7 @@ class Game:
         if not (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]):
             return
         
-        room_changed = False
+        room_changed: bool = False
         
         if self.is_key_just_pressed(pygame.K_RIGHT, keys):
             self.room_number += 1
@@ -399,29 +439,30 @@ class Game:
             self.tiled_map.load(self.room_number)
             self.camera_locked = True
             
-            room_map = self.tiled_map.data.properties['RoomMap']
+            room_map: str = self.tiled_map.data.properties['RoomMap']
             self.heightmap = Heightmap()
             self.heightmap.load(room_map)
             
             self.center_camera_on_hero()
     
-    def update_hud(self):
+    def update_hud(self) -> None:
         """Update HUD with debug information"""
         if self.debug_mode and self.heightmap.cells:
-            tile_h = self.tiled_map.data.tileheight
-            world_z = self.hero._world_pos.z + self.hero.HEIGHT * tile_h
-            tile_x = self.hero._world_pos.x // tile_h
-            tile_y = self.hero._world_pos.y // tile_h
-            tile_z = world_z // tile_h
+            hero_pos = self.hero.get_world_pos()
+            tile_h: int = self.tiled_map.data.tileheight
+            world_z: float = hero_pos.z + self.hero.HEIGHT * tile_h
+            tile_x: float = hero_pos.x // tile_h
+            tile_y: float = hero_pos.y // tile_h
+            tile_z: float = world_z // tile_h
             
-            camera_status = "LOCKED" if self.camera_locked else "FREE"
+            camera_status: str = "LOCKED" if self.camera_locked else "FREE"
             
             self.coord_label.set_text(
-                f"Room: {self.room_number} | X: {self.hero._world_pos.x:.1f}, Y: {self.hero._world_pos.y:.1f}, Z: {world_z:.1f} | "
+                f"Room: {self.room_number} | X: {hero_pos.x:.1f}, Y: {hero_pos.y:.1f}, Z: {world_z:.1f} | "
                 f"T X: {tile_x:.0f}, Y: {tile_y:.0f}, Z: {tile_z:.0f} | CAM: {camera_status}"
             )
     
-    def render(self):
+    def render(self) -> None:
         """Render the game"""
         self.surface.fill((0, 0, 0))
         
@@ -462,16 +503,16 @@ class Game:
         self.manager.draw_ui(self.surface)
         
         # Scale and display
-        scaled_surface = pygame.transform.scale(self.surface, self.screen.get_size())
+        scaled_surface: pygame.Surface = pygame.transform.scale(self.surface, self.screen.get_size())
         self.screen.blit(scaled_surface, (0, 0))
         pygame.display.flip()
     
-    def run(self):
+    def run(self) -> None:
         """Main game loop"""
-        running = True
+        running: bool = True
         
         while running:
-            time_delta = self.clock.tick(FPS) / 1000.0
+            time_delta: float = self.clock.tick(FPS) / 1000.0
             
             # Handle events
             running = self.handle_events()
@@ -479,7 +520,7 @@ class Game:
                 break
             
             # Get key states
-            keys = pygame.key.get_pressed()
+            keys: pygame.key.ScancodeWrapper = pygame.key.get_pressed()
             
             # Exit on Escape
             if keys[pygame.K_ESCAPE]:
@@ -510,19 +551,19 @@ class Game:
         sys.exit()
 
 
-def main():
+def main() -> None:
     # Initialize argument parser
-    parser = argparse.ArgumentParser(description="LandStalker Game")
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(description="LandStalker Game")
     parser.add_argument('-r', '--room', type=int, default=1, help='Room number')
     parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mode')
     parser.add_argument('-x', type=int, default=0, help='Hero starting X position')
     parser.add_argument('-y', type=int, default=0, help='Hero starting Y position')
     parser.add_argument('-z', type=int, default=0, help='Hero starting Z position')
     
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
     
     # Create and run game
-    game = Game(args)
+    game: Game = Game(args)
     game.run()
 
 
