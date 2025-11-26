@@ -48,14 +48,14 @@ class Warp:
                      hero_y + hero_height > warp_y)
         
         # Debug print for all warps
-        status = "COLLISION!" if collision else "no collision"
-        print(f"[WARP CHECK {status}] Room {self.room1}→{self.room2} (current: {current_room})")
-        print(f"  Hero: pos=({hero_x:.1f}, {hero_y:.1f}) size=({hero_width}, {hero_height})")
-        print(f"  Warp tile: ({warp_tile_x}, {warp_tile_y}) offset: ({off_x}, {off_y})")
-        print(f"  Warp world: pos=({warp_x:.1f}, {warp_y:.1f}) size=({warp_width}, {warp_height})")
-        print(f"  Hero bounds: [{hero_x:.1f} to {hero_x + hero_width:.1f}, {hero_y:.1f} to {hero_y + hero_height:.1f}]")
-        print(f"  Warp bounds: [{warp_x:.1f} to {warp_x + warp_width:.1f}, {warp_y:.1f} to {warp_y + warp_height:.1f}]")
-        print()
+        #status = "COLLISION!" if collision else "no collision"
+        #print(f"[WARP CHECK {status}] Room {self.room1}→{self.room2} (current: {current_room})")
+        #print(f"  Hero: pos=({hero_x:.1f}, {hero_y:.1f}) size=({hero_width}, {hero_height})")
+        #print(f"  Warp tile: ({warp_tile_x}, {warp_tile_y}) offset: ({off_x}, {off_y})")
+        #print(f"  Warp world: pos=({warp_x:.1f}, {warp_y:.1f}) size=({warp_width}, {warp_height})")
+        #print(f"  Hero bounds: [{hero_x:.1f} to {hero_x + hero_width:.1f}, {hero_y:.1f} to {hero_y + hero_height:.1f}]")
+        #print(f"  Warp bounds: [{warp_x:.1f} to {warp_x + warp_width:.1f}, {warp_y:.1f} to {warp_y + warp_height:.1f}]")
+        #print()
         
         return collision
     

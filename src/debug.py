@@ -172,38 +172,43 @@ def draw_hero_boundbox(hero, screen, tile_height, camera_x, camera_y, left_offse
 # -------------------------------------------------------------
 def draw_warps(screen, warps, heightmap, tile_h, camera_x, camera_y, current_room):
     """Draw all warps for debugging"""
-    
     # Precompute offsets
     off_x = (heightmap.left_offset) * tile_h
     off_y = (heightmap.top_offset) * tile_h
     
-    def iso_point(wx, wy):
-        """Convert world Cartesian → isometric pixel coords."""
+    def iso_point(wx, wy, z):
+        """Convert world Cartesian → isometric pixel coords, accounting for height."""
         ix, iy = cartesian_to_iso(wx - off_x, wy - off_y)
-        return ix - camera_x, iy - camera_y
+        # Subtract z (height)
+        return ix - camera_x, iy - camera_y - z
     
     font = pygame.font.SysFont("Arial", 10)
     
     for warp in warps:
         x = 0
         y = 0
-
         if warp.room1 == current_room:
             x = warp.x
             y = warp.y
         else:
             x = warp.x2
             y = warp.y2
-
         
         color = (0, 200, 255)
-
-        # Warp rectangle corners (already in pixel coordinates from Tiled)
-        p1 = iso_point(x * tile_h, y * tile_h)
-        p2 = iso_point(x  * tile_h + warp.width  * tile_h, y * tile_h)
-        p3 = iso_point(x  * tile_h+ warp.width * tile_h, y * tile_h + warp.height * tile_h)
-        p4 = iso_point(x * tile_h, y  * tile_h+ warp.height * tile_h)
-    
+        
+        # Get the height (z) at the warp position
+        tile_x = int(x - 12)
+        tile_y = int(y - 12)
+        
+        cell = heightmap.get_cell(tile_x, tile_y)
+        z = cell.height * tile_h
+        
+        # Warp rectangle corners (already in tile coordinates from Tiled)
+        p1 = iso_point(x * tile_h, y * tile_h, z)
+        p2 = iso_point(x * tile_h + warp.width * tile_h, y * tile_h, z)
+        p3 = iso_point(x * tile_h + warp.width * tile_h, y * tile_h + warp.height * tile_h, z)
+        p4 = iso_point(x * tile_h, y * tile_h + warp.height * tile_h, z)
+        
         # Draw warp zone rectangle
         pygame.draw.lines(screen, color, True, [p1, p2, p3, p4])
         
