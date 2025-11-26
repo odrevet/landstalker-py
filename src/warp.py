@@ -15,10 +15,9 @@ class Warp:
     
     def check_collision(self, hero_x, hero_y, hero_width, hero_height, tile_h, current_room, heightmap):
         """Check if hero collides with this warp zone
-        
         Args:
             hero_x, hero_y: Hero position in pixels (world coordinates)
-            hero_width, hero_height: Hero size in pixels
+            hero_width, hero_height: Hero size in pixels (not used for point collision)
             tile_h: Tile height in pixels
             current_room: Current room number
             heightmap: Heightmap object for offset calculations
@@ -31,51 +30,43 @@ class Warp:
             warp_tile_x = self.x2
             warp_tile_y = self.y2
         
-        # Apply the same offset transformation as the visual debug
-        off_x = heightmap.left_offset * tile_h
-        off_y = heightmap.top_offset * tile_h
+        # Convert hero world position to tile coordinates
+        hero_tile_x = hero_x // tile_h
+        hero_tile_y = hero_y // tile_h
         
-        # Convert warp tiles to world coordinates (same as visual)
-        warp_x = warp_tile_x * tile_h
-        warp_y = warp_tile_y * tile_h
-        warp_width = self.width * tile_h
-        warp_height = self.height * tile_h
+        # Apply the 12-tile offset to align warp coordinates with heightmap coordinates
+        # Warp uses Tiled coordinates, heightmap has a 12-tile offset
+        adjusted_warp_tile_x = warp_tile_x - 12
+        adjusted_warp_tile_y = warp_tile_y - 12
         
-        # AABB collision detection in world coordinates
-        collision = (hero_x < warp_x + warp_width and
-                     hero_x + hero_width > warp_x and
-                     hero_y < warp_y + warp_height and
-                     hero_y + hero_height > warp_y)
-        
-        # Debug print for all warps
-        #status = "COLLISION!" if collision else "no collision"
-        #print(f"[WARP CHECK {status}] Room {self.room1}→{self.room2} (current: {current_room})")
-        #print(f"  Hero: pos=({hero_x:.1f}, {hero_y:.1f}) size=({hero_width}, {hero_height})")
-        #print(f"  Warp tile: ({warp_tile_x}, {warp_tile_y}) offset: ({off_x}, {off_y})")
-        #print(f"  Warp world: pos=({warp_x:.1f}, {warp_y:.1f}) size=({warp_width}, {warp_height})")
-        #print(f"  Hero bounds: [{hero_x:.1f} to {hero_x + hero_width:.1f}, {hero_y:.1f} to {hero_y + hero_height:.1f}]")
-        #print(f"  Warp bounds: [{warp_x:.1f} to {warp_x + warp_width:.1f}, {warp_y:.1f} to {warp_y + warp_height:.1f}]")
-        #print()
+        # Point-in-rectangle collision: check if hero tile is within warp bounds
+        collision = (adjusted_warp_tile_x <= hero_tile_x < adjusted_warp_tile_x + self.width and
+                    adjusted_warp_tile_y <= hero_tile_y < adjusted_warp_tile_y + self.height)
         
         return collision
-    
-    def get_target_room(self, current_room):
-        """Get the target room based on current room"""
-        return self.room2 if current_room == self.room1 else self.room1
-    
-    def get_destination(self, tile_h, current_room):
+
+    def get_destination(self, tile_h, current_room, heightmap):
         """Get the destination coordinates in world pixels
-        
         Args:
             tile_h: Tile height in pixels
             current_room: Current room number
-            
         Returns:
             Tuple of (x, y) in pixel coordinates
         """
         if current_room == self.room1:
             # Going from room1 to room2, use x2, y2
-            return self.x2 * tile_h, self.y2 * tile_h
+            dest_tile_x = self.x2
+            dest_tile_y = self.y2
         else:
             # Going from room2 to room1, use x, y
-            return self.x * tile_h, self.y * tile_h
+            dest_tile_x = self.x
+            dest_tile_y = self.y
+        
+        adjusted_tile_x = dest_tile_x
+        adjusted_tile_y = dest_tile_y
+        
+        return adjusted_tile_x * tile_h, adjusted_tile_y * tile_h
+    
+    def get_target_room(self, current_room):
+        """Get the target room based on current room"""
+        return self.room2 if current_room == self.room1 else self.room1

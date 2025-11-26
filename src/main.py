@@ -208,7 +208,7 @@ class Game:
                     self.heightmap.load(room_map)
                     
                     # Set hero position to warp destination
-                    dest_x, dest_y = warp.get_destination()
+                    dest_x, dest_y = warp.get_destination(tile_h, self.room_number, self.heightmap)
                     self.hero._world_pos.x = dest_x
                     self.hero._world_pos.y = dest_y
                     
