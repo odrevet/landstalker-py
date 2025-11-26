@@ -1,33 +1,38 @@
 import pygame
+from typing import List, Tuple, Dict, Any, Optional
 
-from pytmx.util_pygame import load_pygame
+from pytmx.util_pygame import load_pygame, TiledMap
 from pygame.math import Vector2
 
 from hero import Hero
 from utils import cartesian_to_iso, iso_to_cartesian
 from warp import Warp
 
-class Tile:
-    def __init__(self, offset):
-        self.image = None
-        self.has_priority = False
-        self.is_hflipped = False
-        self.is_vflipped = False
-        self.offset = Vector2(offset[0], offset[1])
 
-    def draw(self, surface, screen_pos, layer_offset_h, camera_x, camera_y):
+class Tile:
+    def __init__(self, offset: Tuple[int, int]) -> None:
+        self.image: Optional[pygame.Surface] = None
+        self.has_priority: bool = False
+        self.is_hflipped: bool = False
+        self.is_vflipped: bool = False
+        self.offset: Vector2 = Vector2(offset[0], offset[1])
+
+    def draw(self, surface: pygame.Surface, screen_pos: Vector2, 
+             layer_offset_h: float, camera_x: float, camera_y: float) -> None:
         surface.blit(self.image, 
                     (screen_pos.x - camera_x + self.offset.x + layer_offset_h, 
                      screen_pos.y - camera_y + self.offset.y))
 
-class Blockset:
-    def __init__(self):
-        self.tiles = []
-        self.grid_pos = None
-        self.screen_pos = None
-        self.gid = None
 
-    def draw(self, surface, layer_offset_h, camera_x, camera_y):
+class Blockset:
+    def __init__(self) -> None:
+        self.tiles: List[Tile] = []
+        self.grid_pos: Optional[Vector2] = None
+        self.screen_pos: Optional[Vector2] = None
+        self.gid: Optional[int] = None
+
+    def draw(self, surface: pygame.Surface, layer_offset_h: float, 
+             camera_x: float, camera_y: float) -> None:
         if self.screen_pos.x - camera_x + layer_offset_h > -16 and \
            self.screen_pos.y - camera_y > -16 and \
            self.screen_pos.x - camera_x + layer_offset_h < 448 and \
@@ -35,26 +40,27 @@ class Blockset:
             for tile in self.tiles:
                 tile.draw(surface, self.screen_pos, layer_offset_h, camera_x, camera_y)
 
-class Layer:
-    def __init__(self):
-        self.data = None
-        self.blocksets = []
 
-    def draw(self, surface, camera_x, camera_y):
+class Layer:
+    def __init__(self) -> None:
+        self.data: Optional[TiledTileLayer] = None
+        self.blocksets: List[Blockset] = []
+
+    def draw(self, surface: pygame.Surface, camera_x: float, camera_y: float) -> None:
         for blockset in self.blocksets:
             blockset.draw(surface, self.data.offsetx, camera_x, camera_y)
 
 
 class Tiledmap:
-    def __init__(self):
-        self.data = None
-        self.background_layer = None
-        self.foreground_layer = None
-        self.room_number = None
-        self.warps = []
+    def __init__(self) -> None:
+        self.data: Optional[TiledMap] = None
+        self.background_layer: Optional[Layer] = None
+        self.foreground_layer: Optional[Layer] = None
+        self.room_number: Optional[int] = None
+        self.warps: List[Warp] = []
 
-    def load(self, room_number):
-        tmx_filename = f"data/rooms/Room{room_number:03d}.tmx"
+    def load(self, room_number: int) -> None:
+        tmx_filename: str = f"data/rooms/Room{room_number:03d}.tmx"
         print(f"loading {tmx_filename}")
         self.data = load_pygame(tmx_filename)
 
@@ -70,8 +76,9 @@ class Tiledmap:
 
         # Load warps as Warp objects
         self.warps = []
-        for warp in self.data.get_layer_by_name('Warps'):
-            warp_data = {
+        warp_layer = self.data.get_layer_by_name('Warps')
+        for warp in warp_layer:
+            warp_data: Dict[str, Any] = {
                 'room1': int(warp.properties['room1']),
                 'room2': int(warp.properties['room2']),
                 'x': warp.x,
@@ -84,8 +91,7 @@ class Tiledmap:
             }
             self.warps.append(Warp(warp_data))
 
-        
-    def draw(self, surface, camera_x, camera_y, hero):
+    def draw(self, surface: pygame.Surface, camera_x: float, camera_y: float, hero: Hero) -> None:
         self.background_layer.draw(surface, camera_x, camera_y)
 
         for blockset in self.foreground_layer.blocksets:
@@ -100,43 +106,47 @@ class Tiledmap:
                 if tile.has_priority == True:
                     tile.draw(surface, blockset.screen_pos, self.foreground_layer.data.offsetx, camera_x, camera_y)
 
-    def populate_layer(self, layer):
+    def populate_layer(self, layer: Layer) -> None:
         for y in range(layer.data.height):
             for x in range(layer.data.width):
-                gid = layer.data.data[y][x]
+                gid: int = layer.data.data[y][x]
 
                 # Get the tile image
-                tile_image = self.data.get_tile_image_by_gid(gid)
+                tile_image: pygame.Surface = self.data.get_tile_image_by_gid(gid)
                 
                 # Get the tile dimensions
+                tile_width: int
+                tile_height: int
                 tile_width, tile_height = tile_image.get_width(), tile_image.get_height()
 
                 # Define sub-rects for each quadrant of the tile
-                top_left_rect = pygame.Rect(0, 0, tile_width // 2, tile_height // 2)
-                top_right_rect = pygame.Rect(tile_width // 2, 0, tile_width // 2, tile_height // 2)
-                bottom_left_rect = pygame.Rect(0, tile_height // 2, tile_width // 2, tile_height // 2)
-                bottom_right_rect = pygame.Rect(tile_width // 2, tile_height // 2, tile_width // 2, tile_height // 2)
+                top_left_rect: pygame.Rect = pygame.Rect(0, 0, tile_width // 2, tile_height // 2)
+                top_right_rect: pygame.Rect = pygame.Rect(tile_width // 2, 0, tile_width // 2, tile_height // 2)
+                bottom_left_rect: pygame.Rect = pygame.Rect(0, tile_height // 2, tile_width // 2, tile_height // 2)
+                bottom_right_rect: pygame.Rect = pygame.Rect(tile_width // 2, tile_height // 2, tile_width // 2, tile_height // 2)
 
                 # Define offsets for the tiles inside a block
-                offsets = [(0, 0), (tile_width // 2, 0), (0, tile_height // 2), (tile_width // 2, tile_height // 2)]
-                tiles_rect = [top_left_rect, top_right_rect, bottom_left_rect, bottom_right_rect]
+                offsets: List[Tuple[int, int]] = [(0, 0), (tile_width // 2, 0), (0, tile_height // 2), (tile_width // 2, tile_height // 2)]
+                tiles_rect: List[pygame.Rect] = [top_left_rect, top_right_rect, bottom_left_rect, bottom_right_rect]
 
                 # Calculate screen position of the block
+                screen_x: float
+                screen_y: float
                 screen_x, screen_y = iso_to_cartesian(x, y)
                 screen_x *= self.data.tilewidth // 2
                 screen_y *= self.data.tileheight // 2
 
                 # instanciate a new blockset
-                blockset = Blockset()
+                blockset: Blockset = Blockset()
                 blockset.grid_pos = Vector2(x, y)
                 blockset.screen_pos = Vector2(screen_x, screen_y)
                 blockset.gid = gid
 
                 # Access the tile properties
-                tile_properties = self.data.get_tile_properties_by_gid(gid)
+                tile_properties: Optional[Dict[str, Any]] = self.data.get_tile_properties_by_gid(gid)
 
                 for index, (sub_tile, offset) in enumerate(zip(tiles_rect, offsets)):
-                    tile = Tile(offset)
+                    tile: Tile = Tile(offset)
                     tile.image = tile_image.subsurface(sub_tile)
 
                     # tile.is_hflipped = tile_properties.get(f"isHFlipped{index}", False)
