@@ -101,10 +101,10 @@ class Tiledmap:
 
         hero.draw(surface)
         
-        for blockset in self.foreground_layer.blocksets:
+        for blockset in self.background_layer.blocksets:
             for tile in blockset.tiles:
                 if tile.has_priority == True:
-                    tile.draw(surface, blockset.screen_pos, self.foreground_layer.data.offsetx, camera_x, camera_y)
+                    tile.draw(surface, blockset.screen_pos, self.background_layer.data.offsetx, camera_x, camera_y)
 
     def populate_layer(self, layer: Layer) -> None:
         for y in range(layer.data.height):
