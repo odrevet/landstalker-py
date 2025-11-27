@@ -232,8 +232,6 @@ class Game:
                     # Get current Z or use ground height at destination
                     dest_cell: Optional[HeightmapCell] = self.heightmap.get_cell(dest_tile_x, dest_tile_y)
                     dest_tile_z: int = dest_cell.height
-                    
-                    print(f"Dest {dest_tile_x} {dest_tile_y} {dest_tile_z}")
 
                     self.hero.set_world_pos(
                         dest_tile_x * tile_h, dest_tile_y * tile_h, dest_tile_z * tile_h,
@@ -256,15 +254,16 @@ class Game:
         hero_pos = self.hero.get_world_pos()
         height_at_foot: float = hero_pos.z + self.hero.HEIGHT * self.tiled_map.data.tileheight
         
+        margin: int = 1
         tile_h: int = self.tiled_map.data.tileheight
-        left_x: int = int(hero_pos.x // tile_h)
+        left_x: int = int((hero_pos.x + margin) // tile_h)
         left_y: int = int((hero_pos.y + tile_h) // tile_h)
-        bottom_x: int = int((hero_pos.x + tile_h) // tile_h)
-        bottom_y: int = int((hero_pos.y + tile_h) // tile_h)
-        top_x: int = int(hero_pos.x // tile_h)
-        top_y: int = int(hero_pos.y // tile_h)
-        right_x: int = int((hero_pos.x + tile_h) // tile_h)
-        right_y: int = int(hero_pos.y // tile_h)
+        bottom_x: int = int((hero_pos.x + tile_h - margin) // tile_h)
+        bottom_y: int = int((hero_pos.y + tile_h - margin) // tile_h)
+        top_x: int = int((hero_pos.x + margin) // tile_h)
+        top_y: int = int((hero_pos.y + margin) // tile_h)
+        right_x: int = int((hero_pos.x + tile_h - margin) // tile_h)
+        right_y: int = int((hero_pos.y - margin) // tile_h)
         
         # Check if hero is above ground
         if not self.hero.is_jumping:
