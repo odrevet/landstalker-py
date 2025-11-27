@@ -81,8 +81,8 @@ class Tiledmap:
             warp_data: Dict[str, Any] = {
                 'room1': int(warp.properties['room1']),
                 'room2': int(warp.properties['room2']),
-                'x': warp.x,
-                'y': warp.y,
+                'x': int(warp.x),
+                'y': int(warp.y),
                 'x2': int(warp.properties['x2']),
                 'y2': int(warp.properties['y2']),
                 'width': warp.width,

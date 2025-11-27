@@ -225,18 +225,16 @@ class Game:
                     self.heightmap.load(room_map)
                     
                     # Set hero position to warp destination
-                    dest_x: float
-                    dest_y: float
-                    dest_x, dest_y = warp.get_destination(tile_h, self.room_number, self.heightmap)
+                    dest_tile_x: int
+                    dest_tile_y: int
+                    dest_tile_x, dest_tile_y = warp.get_destination(self.room_number, self.heightmap)
                     
                     # Get current Z or use ground height at destination
-                    dest_tile_x: int = int(dest_x // tile_h)
-                    dest_tile_y: int = int(dest_y // tile_h)
                     dest_cell: Optional[HeightmapCell] = self.heightmap.get_cell(dest_tile_x, dest_tile_y)
-                    dest_z: float = dest_cell.height * tile_h if dest_cell else 0
+                    dest_tile_z: int = dest_cell.height
                     
                     self.hero.set_world_pos(
-                        dest_x, dest_y, dest_z,
+                        dest_tile_x * tile_h, dest_tile_y * tile_h, dest_tile_z * tile_h,
                         self.heightmap.left_offset,
                         self.heightmap.top_offset,
                         self.camera_x,
