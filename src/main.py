@@ -233,6 +233,8 @@ class Game:
                     dest_cell: Optional[HeightmapCell] = self.heightmap.get_cell(dest_tile_x, dest_tile_y)
                     dest_tile_z: int = dest_cell.height
                     
+                    print(f"Dest {dest_tile_x} {dest_tile_y} {dest_tile_z}")
+
                     self.hero.set_world_pos(
                         dest_tile_x * tile_h, dest_tile_y * tile_h, dest_tile_z * tile_h,
                         self.heightmap.left_offset,

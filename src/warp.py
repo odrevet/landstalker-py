@@ -43,8 +43,8 @@ class Warp:
             warp_tile_y = self.y2
         
         # Convert hero world position to tile coordinates
-        hero_tile_x = hero_x // tile_h
-        hero_tile_y = hero_y // tile_h
+        hero_tile_x = (hero_x + hero_width // 2) // tile_h
+        hero_tile_y = (hero_y + hero_width // 2) // tile_h
         
         # Apply the 12-tile offset to align warp coordinates with heightmap coordinates
         # Warp uses Tiled coordinates, heightmap has a 12-tile offset
@@ -71,13 +71,13 @@ class Warp:
             Tuple of (x, y) in tile coordinates
         """
         if current_room == self.room1:
-            # Going from room1 to room2, use x2, y2
-            dest_tile_x = self.x2
-            dest_tile_y = self.y2
-        else:
-            # Going from room2 to room1, use x, y
+            # Going from room1 to room2
             dest_tile_x = self.x
             dest_tile_y = self.y
+        else:
+            # Going from room2 to room1
+            dest_tile_x = self.x2
+            dest_tile_y = self.y2
         
         adjusted_tile_x = dest_tile_x - 12
         adjusted_tile_y = dest_tile_y - 12
