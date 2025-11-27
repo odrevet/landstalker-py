@@ -45,6 +45,9 @@ class Game:
         self.is_warps_displayed: bool = False
         self.camera_locked: bool = True  # Camera follows hero by default
         
+        self.prev_hero_tile_x: int = -1
+        self.prev_hero_tile_y: int = -1
+
         # Key state tracking for toggles
         self.prev_keys: dict = {}
         
@@ -210,6 +213,19 @@ class Game:
         hero_width: int = tile_h
         hero_height: int = tile_h
         
+        # Calculate current tile (using center of hero)
+        current_tile_x: int = int((hero_x + hero_width // 2) // tile_h)
+        current_tile_y: int = int((hero_y + hero_height // 2) // tile_h)
+        
+        # Only check warps if hero has moved to a different tile
+        if (current_tile_x == self.prev_hero_tile_x and 
+            current_tile_y == self.prev_hero_tile_y):
+            return False
+        
+        # Update previous tile position
+        self.prev_hero_tile_x = current_tile_x
+        self.prev_hero_tile_y = current_tile_y
+        
         for warp in self.tiled_map.warps:
             if warp.check_collision(hero_x, hero_y, hero_width, hero_height, tile_h, self.tiled_map.room_number, self.heightmap):
                 target_room: int = warp.get_target_room(self.room_number)
@@ -244,6 +260,10 @@ class Game:
                     # Center camera on hero in new room
                     self.camera_locked = True
                     self.center_camera_on_hero()
+                    
+                    # Reset previous tile tracking after warp to prevent immediate re-warp
+                    self.prev_hero_tile_x = dest_tile_x
+                    self.prev_hero_tile_y = dest_tile_y
                     
                     return True
         
