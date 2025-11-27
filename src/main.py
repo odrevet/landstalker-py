@@ -277,7 +277,7 @@ class Game:
         margin: int = 1
         tile_h: int = self.tiled_map.data.tileheight
         left_x: int = int((hero_pos.x + margin) // tile_h)
-        left_y: int = int((hero_pos.y + tile_h) // tile_h)
+        left_y: int = int((hero_pos.y - margin + tile_h) // tile_h)
         bottom_x: int = int((hero_pos.x + tile_h - margin) // tile_h)
         bottom_y: int = int((hero_pos.y + tile_h - margin) // tile_h)
         top_x: int = int((hero_pos.x + margin) // tile_h)
