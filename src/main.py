@@ -16,9 +16,9 @@ from debug import draw_hero_boundbox, draw_heightmap, draw_warps
 DISPLAY_WIDTH: int = 320
 DISPLAY_HEIGHT: int = 448
 CAMERA_SPEED: int = 5
-GRAVITY: int = 2
+GRAVITY: float = 1.0
 HERO_SPEED: float = 1.75
-HERO_MAX_JUMP: int = 16
+HERO_MAX_JUMP: int = 24
 FPS: int = 60
 
 
@@ -283,7 +283,7 @@ class Game:
         top_x: int = int((hero_pos.x + margin) // tile_h)
         top_y: int = int((hero_pos.y + margin) // tile_h)
         right_x: int = int((hero_pos.x + tile_h - margin) // tile_h)
-        right_y: int = int((hero_pos.y - margin) // tile_h)
+        right_y: int = int((hero_pos.y + margin) // tile_h)
         
         # Check if hero is above ground
         if not self.hero.is_jumping:
@@ -293,7 +293,7 @@ class Game:
                 cells[right_y][right_x].height * tile_h < height_at_foot and
                 cells[left_y][left_x].height * tile_h < height_at_foot):
                 
-                new_z: float = hero_pos.z - 1
+                new_z: float = hero_pos.z - GRAVITY
                 self.hero.set_world_pos(
                     hero_pos.x, hero_pos.y, new_z,
                     self.heightmap.left_offset,
