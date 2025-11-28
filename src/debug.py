@@ -129,42 +129,38 @@ def draw_heightmap(screen, heightmap, tile_height, camera_x, camera_y):
 #  DRAW HERO BOUNDING BOX
 # -------------------------------------------------------------
 def draw_hero_boundbox(hero, screen, tile_height, camera_x, camera_y, left_offset, top_offset):
-    """Draw hero's isometric bounding box."""
-
-    offset_x = (left_offset - 12 + 4) * tile_height - 12
-    offset_y = (top_offset - 11 + 4) * tile_height - 12
-
-    # Corners of the hero footprint
-    left_x, left_y = cartesian_to_iso(hero._world_pos.x - offset_x, hero._world_pos.y + tile_height - offset_y)
-    bottom_x, bottom_y = cartesian_to_iso(hero._world_pos.x + tile_height - offset_x, hero._world_pos.y + tile_height - offset_y)
-    top_x, top_y = cartesian_to_iso(hero._world_pos.x - offset_x, hero._world_pos.y - offset_y)
-    right_x, right_y = cartesian_to_iso(hero._world_pos.x + tile_height - offset_x, hero._world_pos.y - offset_y)
-
+    """Draw hero's isometric bounding box using helper functions."""
+    
+    # Get corner positions in isometric screen space
+    corners_iso = hero.get_bbox_corners_iso(tile_height, left_offset, top_offset, camera_x, camera_y)
+    
+    # Get Z positions for top and bottom of bounding box
     z_top = hero._world_pos.z - hero.HEIGHT * tile_height
     z_bottom = hero._world_pos.z + hero.HEIGHT * tile_height - hero.HEIGHT * tile_height
+    
     color = (50, 255, 50)
-
-    # Top rectangle
-    pygame.draw.lines(
-        screen, color, True,
-        [
-            (left_x  - camera_x, left_y  - camera_y - z_top),
-            (bottom_x - camera_x, bottom_y - camera_y - z_top),
-            (right_x - camera_x, right_y - camera_y - z_top),
-            (top_x   - camera_x, top_y   - camera_y - z_top),
-        ]
-    )
-
-    # Bottom rectangle
-    pygame.draw.lines(
-        screen, color, True,
-        [
-            (left_x  - camera_x, left_y  - camera_y - z_bottom),
-            (bottom_x - camera_x, bottom_y - camera_y - z_bottom),
-            (right_x - camera_x, right_y - camera_y - z_bottom),
-            (top_x   - camera_x, top_y   - camera_y - z_bottom),
-        ]
-    )
+    
+    # Create points for top rectangle (with Z offset)
+    top_points = [
+        (corners_iso[0][0], corners_iso[0][1] - z_top),   # left
+        (corners_iso[1][0], corners_iso[1][1] - z_top),   # bottom
+        (corners_iso[2][0], corners_iso[2][1] - z_top),   # right
+        (corners_iso[3][0], corners_iso[3][1] - z_top),   # top
+    ]
+    
+    # Create points for bottom rectangle (with Z offset)
+    bottom_points = [
+        (corners_iso[0][0], corners_iso[0][1] - z_bottom),   # left
+        (corners_iso[1][0], corners_iso[1][1] - z_bottom),   # bottom
+        (corners_iso[2][0], corners_iso[2][1] - z_bottom),   # right
+        (corners_iso[3][0], corners_iso[3][1] - z_bottom),   # top
+    ]
+    
+    # Draw top rectangle
+    pygame.draw.lines(screen, color, True, top_points)
+    
+    # Draw bottom rectangle
+    pygame.draw.lines(screen, color, True, bottom_points)
 
 
 # -------------------------------------------------------------

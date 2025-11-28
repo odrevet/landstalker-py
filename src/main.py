@@ -16,7 +16,7 @@ from debug import draw_hero_boundbox, draw_heightmap, draw_warps
 DISPLAY_WIDTH: int = 320
 DISPLAY_HEIGHT: int = 448
 CAMERA_SPEED: int = 5
-GRAVITY: float = 1.0
+GRAVITY: float = 1.5
 HERO_SPEED: float = 1.75
 HERO_MAX_JUMP: int = 24
 FPS: int = 60
@@ -287,13 +287,31 @@ class Game:
         # Check if hero is above ground
         if not self.hero.is_jumping:
             cells = self.heightmap.cells
-            if (cells[top_y][top_x].height * tile_h < height_at_foot and
-                cells[bottom_y][bottom_x].height * tile_h < height_at_foot and
-                cells[right_y][right_x].height * tile_h < height_at_foot and
-                cells[left_y][left_x].height * tile_h < height_at_foot):
-                
+            
+            # Find the highest ground level under the hero
+            max_ground_height: float = max(
+                cells[top_y][top_x].height * tile_h,
+                cells[bottom_y][bottom_x].height * tile_h,
+                cells[right_y][right_x].height * tile_h,
+                cells[left_y][left_x].height * tile_h
+            )
+            
+            # Check if hero is above ground
+            if max_ground_height < height_at_foot:
+                # Hero is in the air, apply gravity
                 hero_pos = self.hero.get_world_pos()
                 new_z: float = hero_pos.z - GRAVITY
+                
+                # Check if gravity would push hero below ground
+                new_foot_height: float = new_z + self.hero.HEIGHT * tile_h
+                if new_foot_height <= max_ground_height:
+                    # Snap to ground level
+                    new_z = max_ground_height - self.hero.HEIGHT * tile_h
+                    self.hero.touch_ground = True
+                else:
+                    # Still falling
+                    self.hero.touch_ground = False
+                
                 self.hero.set_world_pos(
                     hero_pos.x, hero_pos.y, new_z,
                     self.heightmap.left_offset,
@@ -304,9 +322,23 @@ class Game:
                 
                 if self.camera_locked:
                     self.center_camera_on_hero()
-                
-                self.hero.touch_ground = False
             else:
+                # Hero is on or below ground, snap to ground
+                hero_pos = self.hero.get_world_pos()
+                correct_z: float = max_ground_height - self.hero.HEIGHT * tile_h
+                
+                if hero_pos.z != correct_z:
+                    self.hero.set_world_pos(
+                        hero_pos.x, hero_pos.y, correct_z,
+                        self.heightmap.left_offset,
+                        self.heightmap.top_offset,
+                        self.camera_x,
+                        self.camera_y
+                    )
+                    
+                    if self.camera_locked:
+                        self.center_camera_on_hero()
+                
                 self.hero.touch_ground = True
     
     def can_move_to(self, next_x: float, next_y: float, check_cells: List[Tuple[int, int]]) -> bool:

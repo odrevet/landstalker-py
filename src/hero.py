@@ -1,6 +1,11 @@
 import pygame
 from pygame.math import Vector2, Vector3
+from typing import Tuple, List
 from utils import cartesian_to_iso
+
+# Margin to reduce bounding box size for tighter collision detection
+MARGIN: int = 4
+
 
 class Hero(pygame.sprite.Sprite):
     def __init__(self, x: float = 0, y: float = 0, z: float = 0) -> None:
@@ -8,7 +13,7 @@ class Hero(pygame.sprite.Sprite):
         # Try to load image, create placeholder if it doesn't exist
         try:
             full_image = pygame.image.load('data/gfx/SpriteGfx000Anim001.png').convert_alpha()
-            self.image: pygame.Surface = full_image #.subsurface(pygame.Rect(0, 0, 32, 56))
+            self.image: pygame.Surface = full_image
         except (pygame.error, FileNotFoundError):
             # Create a simple placeholder surface if image doesn't exist
             self.image: pygame.Surface = pygame.Surface((32, 56), pygame.SRCALPHA)
@@ -31,9 +36,82 @@ class Hero(pygame.sprite.Sprite):
         """Get the hero's world position"""
         return self._world_pos
     
+    def get_bounding_box(self, tile_h: int) -> Tuple[float, float, float, float]:
+        """Get hero's bounding box in world coordinates with margin applied
+        
+        Args:
+            tile_h: Tile height in pixels
+            
+        Returns:
+            Tuple of (x, y, width, height) in world coordinates
+        """
+        x = self._world_pos.x + MARGIN
+        y = self._world_pos.y + MARGIN
+        width = tile_h - (MARGIN * 2)
+        height = tile_h - (MARGIN * 2)
+        return (x, y, width, height)
+    
+    def get_bbox_corners_world(self, tile_h: int) -> Tuple[Tuple[float, float], ...]:
+        """Get the four corners of the hero's bounding box in world coordinates
+        
+        Args:
+            tile_h: Tile height in pixels
+            
+        Returns:
+            Tuple of 4 corner positions: (left, bottom, right, top)
+            Each corner is (x, y) in world coordinates
+        """
+        x, y, width, height = self.get_bounding_box(tile_h)
+        
+        left = (x, y + height)
+        bottom = (x + width, y + height)
+        right = (x + width, y)
+        top = (x, y)
+        
+        return (left, bottom, right, top)
+    
+    def get_bbox_corners_iso(self, tile_h: int, left_offset: int, top_offset: int, 
+                              camera_x: float, camera_y: float) -> List[Tuple[float, float]]:
+        """Get the four corners of the hero's bounding box in isometric screen coordinates
+        
+        This is useful for debug drawing.
+        
+        Args:
+            tile_h: Tile height in pixels
+            left_offset: Heightmap left offset
+            top_offset: Heightmap top offset
+            camera_x: Camera X position
+            camera_y: Camera Y position
+            
+        Returns:
+            List of 4 corner positions in screen space: [left, bottom, right, top]
+        """
+        offset_x = (left_offset - 12 + 4) * tile_h - 12
+        offset_y = (top_offset - 11 + 4) * tile_h - 12
+        
+        corners_world = self.get_bbox_corners_world(tile_h)
+        corners_iso = []
+        
+        for wx, wy in corners_world:
+            iso_x, iso_y = cartesian_to_iso(wx - offset_x, wy - offset_y)
+            corners_iso.append((iso_x - camera_x, iso_y - camera_y))
+        
+        return corners_iso
+    
+    def get_foot_height(self, tile_h: int) -> float:
+        """Get the height of the hero's feet (bottom of bounding box) in world Z
+        
+        Args:
+            tile_h: Tile height in pixels
+            
+        Returns:
+            Z coordinate of hero's feet
+        """
+        return self._world_pos.z + self.HEIGHT * tile_h
+    
     def set_world_pos(self, x: float, y: float, z: float, 
-                      heightmap_left_offset: int, heightmap_top_offset: int, 
-                      camera_x: float, camera_y: float) -> None:
+                     heightmap_left_offset: int, heightmap_top_offset: int, 
+                     camera_x: float, camera_y: float) -> None:
         """Set the hero's world position and update screen position
         
         Args:
@@ -71,11 +149,13 @@ class Hero(pygame.sprite.Sprite):
         
         offset_x: float = (heightmap_left_offset - 12 + 4) * 16
         offset_y: float = (heightmap_top_offset - 11 + 4) * 16
+        
         iso_x: float
         iso_y: float
         iso_x, iso_y = cartesian_to_iso(self._world_pos.x - offset_x, self._world_pos.y - offset_y)
+        
         self._screen_pos.x = iso_x - 16 - camera_x
-        self._screen_pos.y = iso_y - self._world_pos.z + 12 - camera_y 
+        self._screen_pos.y = iso_y - self._world_pos.z + 12 - camera_y
     
     def draw(self, surface: pygame.Surface) -> None:
         """Draw the hero on the surface"""
