@@ -6,7 +6,7 @@ import pygame
 import pygame_gui
 from pygame_gui.elements.ui_text_box import UITextBox
 
-from hero import Hero
+from hero import Hero, MARGIN
 from utils import *
 from tiledmap import Tiledmap
 from heightmap import Heightmap, HeightmapCell
@@ -206,14 +206,10 @@ class Game:
         """Check if hero is colliding with any warp and handle room transition"""
         tile_h: int = self.tiled_map.data.tileheight
         
-        # Get hero's bounding box in world coordinates
-        hero_pos = self.hero.get_world_pos()
-        hero_x: float = hero_pos.x
-        hero_y: float = hero_pos.y
-        hero_width: int = tile_h
-        hero_height: int = tile_h
+        # Get hero's bounding box using helper function
+        hero_x, hero_y, hero_width, hero_height = self.hero.get_bounding_box(tile_h)
         
-        # Calculate current tile (using center of hero)
+        # Calculate current tile (using center of hero's bounding box)
         current_tile_x: int = int((hero_x + hero_width // 2) // tile_h)
         current_tile_y: int = int((hero_y + hero_height // 2) // tile_h)
         
@@ -270,20 +266,23 @@ class Game:
         return False
     
     def apply_gravity(self) -> None:
-        """Apply gravity to hero"""
-        hero_pos = self.hero.get_world_pos()
-        height_at_foot: float = hero_pos.z + self.hero.HEIGHT * self.tiled_map.data.tileheight
-        
-        margin: int = 1
+        """Apply gravity to hero using bounding box corners"""
         tile_h: int = self.tiled_map.data.tileheight
-        left_x: int = int((hero_pos.x + margin) // tile_h)
-        left_y: int = int((hero_pos.y - margin + tile_h) // tile_h)
-        bottom_x: int = int((hero_pos.x + tile_h - margin) // tile_h)
-        bottom_y: int = int((hero_pos.y + tile_h - margin) // tile_h)
-        top_x: int = int((hero_pos.x + margin) // tile_h)
-        top_y: int = int((hero_pos.y + margin) // tile_h)
-        right_x: int = int((hero_pos.x + tile_h - margin) // tile_h)
-        right_y: int = int((hero_pos.y + margin) // tile_h)
+        
+        # Get hero's foot height and bounding box corners
+        height_at_foot: float = self.hero.get_foot_height(tile_h)
+        corners = self.hero.get_bbox_corners_world(tile_h)
+        
+        # Get tile coordinates for each corner
+        # corners are: (left, bottom, right, top)
+        left_x: int = int(corners[0][0] // tile_h)
+        left_y: int = int(corners[0][1] // tile_h)
+        bottom_x: int = int(corners[1][0] // tile_h)
+        bottom_y: int = int(corners[1][1] // tile_h)
+        right_x: int = int(corners[2][0] // tile_h)
+        right_y: int = int(corners[2][1] // tile_h)
+        top_x: int = int(corners[3][0] // tile_h)
+        top_y: int = int(corners[3][1] // tile_h)
         
         # Check if hero is above ground
         if not self.hero.is_jumping:
@@ -293,6 +292,7 @@ class Game:
                 cells[right_y][right_x].height * tile_h < height_at_foot and
                 cells[left_y][left_x].height * tile_h < height_at_foot):
                 
+                hero_pos = self.hero.get_world_pos()
                 new_z: float = hero_pos.z - GRAVITY
                 self.hero.set_world_pos(
                     hero_pos.x, hero_pos.y, new_z,
@@ -311,9 +311,8 @@ class Game:
     
     def can_move_to(self, next_x: float, next_y: float, check_cells: List[Tuple[int, int]]) -> bool:
         """Check if hero can move to the given position"""
-        hero_pos = self.hero.get_world_pos()
-        height_at_foot: float = hero_pos.z + self.hero.HEIGHT * self.tiled_map.data.tileheight
         tile_h: int = self.tiled_map.data.tileheight
+        height_at_foot: float = self.hero.get_foot_height(tile_h)
         
         for cell_x, cell_y in check_cells:
             cell: Optional[HeightmapCell] = self.heightmap.get_cell(cell_x, cell_y)
@@ -325,7 +324,7 @@ class Game:
         return True
     
     def handle_hero_movement(self, keys: pygame.key.ScancodeWrapper) -> None:
-        """Handle hero movement"""
+        """Handle hero movement using bounding box helpers"""
         if keys[pygame.K_LSHIFT]:  # Camera mode
             return
         
@@ -337,59 +336,69 @@ class Game:
         tile_h: int = self.tiled_map.data.tileheight
         moved: bool = False
         
-        # Calculate current tile positions
-        left_x: int = int(hero_pos.x // tile_h)
-        left_y: int = int((hero_pos.y + tile_h) // tile_h)
-        bottom_x: int = int((hero_pos.x + tile_h) // tile_h)
-        bottom_y: int = int((hero_pos.y + tile_h) // tile_h)
-        top_x: int = int(hero_pos.x // tile_h)
-        top_y: int = int(hero_pos.y // tile_h)
-        right_x: int = int((hero_pos.x + tile_h) // tile_h)
-        right_y: int = int(hero_pos.y // tile_h)
+        # Get current bounding box corners
+        corners = self.hero.get_bbox_corners_world(tile_h)
+        # corners are: (left, bottom, right, top)
         
         new_x: float = hero_pos.x
         new_y: float = hero_pos.y
         
         if keys[pygame.K_LEFT]:
             next_x: float = hero_pos.x - HERO_SPEED
-            new_top_x: int = int(next_x // tile_h)
-            new_left_x: int = int(next_x // tile_h)
+            
+            # Calculate new corner positions after movement
+            new_top_x: int = int((corners[3][0] - HERO_SPEED) // tile_h)
+            new_top_y: int = int(corners[3][1] // tile_h)
+            new_left_x: int = int((corners[0][0] - HERO_SPEED) // tile_h)
+            new_left_y: int = int(corners[0][1] // tile_h)
             
             if next_x > 0 and self.can_move_to(next_x, hero_pos.y, [
-                (new_top_x, top_y), (new_left_x, left_y)
+                (new_top_x, new_top_y), (new_left_x, new_left_y)
             ]):
                 new_x = next_x
                 moved = True
         
         elif keys[pygame.K_RIGHT]:
             next_x: float = hero_pos.x + HERO_SPEED
-            new_bottom_x: int = int((next_x + tile_h) // tile_h)
-            new_right_x: int = int((next_x + tile_h) // tile_h)
+            
+            # Calculate new corner positions after movement
+            new_right_x: int = int((corners[2][0] + HERO_SPEED) // tile_h)
+            new_right_y: int = int(corners[2][1] // tile_h)
+            new_bottom_x: int = int((corners[1][0] + HERO_SPEED) // tile_h)
+            new_bottom_y: int = int(corners[1][1] // tile_h)
             
             if new_right_x < self.heightmap.get_width() and self.can_move_to(
-                next_x, hero_pos.y, [(new_bottom_x, bottom_y), (new_right_x, right_y)]
+                next_x, hero_pos.y, [(new_right_x, new_right_y), (new_bottom_x, new_bottom_y)]
             ):
                 new_x = next_x
                 moved = True
         
         elif keys[pygame.K_UP]:
             next_y: float = hero_pos.y - HERO_SPEED
-            new_top_y: int = int(next_y // tile_h)
-            new_right_y: int = int(next_y // tile_h)
+            
+            # Calculate new corner positions after movement
+            new_top_x: int = int(corners[3][0] // tile_h)
+            new_top_y: int = int((corners[3][1] - HERO_SPEED) // tile_h)
+            new_right_x: int = int(corners[2][0] // tile_h)
+            new_right_y: int = int((corners[2][1] - HERO_SPEED) // tile_h)
             
             if next_y > 0 and self.can_move_to(hero_pos.x, next_y, [
-                (top_x, new_top_y), (right_x, new_right_y)
+                (new_top_x, new_top_y), (new_right_x, new_right_y)
             ]):
                 new_y = next_y
                 moved = True
         
         elif keys[pygame.K_DOWN]:
             next_y: float = hero_pos.y + HERO_SPEED
-            new_left_y: int = int((next_y + tile_h) // tile_h)
-            new_bottom_y: int = int((next_y + tile_h) // tile_h)
+            
+            # Calculate new corner positions after movement
+            new_left_x: int = int(corners[0][0] // tile_h)
+            new_left_y: int = int((corners[0][1] + HERO_SPEED) // tile_h)
+            new_bottom_x: int = int(corners[1][0] // tile_h)
+            new_bottom_y: int = int((corners[1][1] + HERO_SPEED) // tile_h)
             
             if new_left_y < self.heightmap.get_height() and self.can_move_to(
-                hero_pos.x, next_y, [(left_x, new_left_y), (bottom_x, new_bottom_y)]
+                hero_pos.x, next_y, [(new_left_x, new_left_y), (new_bottom_x, new_bottom_y)]
             ):
                 new_y = next_y
                 moved = True
