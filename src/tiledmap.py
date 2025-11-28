@@ -7,6 +7,7 @@ from pygame.math import Vector2
 from hero import Hero
 from utils import cartesian_to_iso, iso_to_cartesian
 from warp import Warp
+from entity import Entity
 
 
 class Tile:
@@ -58,6 +59,7 @@ class Tiledmap:
         self.foreground_layer: Optional[Layer] = None
         self.room_number: Optional[int] = None
         self.warps: List[Warp] = []
+        self.entities: List[Entity] = []
 
     def load(self, room_number: int) -> None:
         tmx_filename: str = f"data/rooms/Room{room_number:03d}.tmx"
@@ -77,19 +79,46 @@ class Tiledmap:
         # Load warps as Warp objects
         self.warps = []
         warp_layer = self.data.get_layer_by_name('Warps')
-        for warp in warp_layer:
-            warp_data: Dict[str, Any] = {
-                'room1': int(warp.properties['room1']),
-                'room2': int(warp.properties['room2']),
-                'x': int(warp.x),
-                'y': int(warp.y),
-                'x2': int(warp.properties['x2']),
-                'y2': int(warp.properties['y2']),
-                'width': warp.width,
-                'height': warp.height,
-                'type': warp.properties['warpType']
-            }
-            self.warps.append(Warp(warp_data))
+        if warp_layer:
+            for warp in warp_layer:
+                warp_data: Dict[str, Any] = {
+                    'room1': int(warp.properties['room1']),
+                    'room2': int(warp.properties['room2']),
+                    'x': int(warp.x),
+                    'y': int(warp.y),
+                    'x2': int(warp.properties['x2']),
+                    'y2': int(warp.properties['y2']),
+                    'width': warp.width,
+                    'height': warp.height,
+                    'type': warp.properties['warpType']
+                }
+                self.warps.append(Warp(warp_data))
+        
+        # Load entities
+        self.entities = []
+        entity_layer = self.data.get_layer_by_name('Entities')
+        if entity_layer:
+            for entity_obj in entity_layer:
+                # Create a dictionary with all entity properties
+                entity_data: Dict[str, Any] = {
+                    'name': entity_obj.name,
+                }
+                
+                # Copy all properties from the TMX object
+                if hasattr(entity_obj, 'properties') and entity_obj.properties:
+                    entity_data.update(entity_obj.properties)
+                
+                # Create Entity object
+                entity = Entity(entity_data)
+                
+                # Calculate world position
+                entity.set_world_pos(self.data.tileheight)
+                
+                self.entities.append(entity)
+            
+            print(f"Loaded {len(self.entities)} entities:")
+            for entity in self.entities:
+                print(f"  - {entity}")
 
     def draw(self, surface: pygame.Surface, camera_x: float, camera_y: float, hero: Hero) -> None:
         self.background_layer.draw(surface, camera_x, camera_y)
