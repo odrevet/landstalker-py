@@ -13,8 +13,8 @@ from heightmap import Heightmap, HeightmapCell
 from debug import draw_hero_boundbox, draw_heightmap, draw_warps, draw_entities_boundboxes
 
 # Constants
-DISPLAY_WIDTH: int = 224
-DISPLAY_HEIGHT: int = 320
+DISPLAY_HEIGHT: int = 224
+DISPLAY_WIDTH: int = 320
 CAMERA_SPEED: int = 5
 GRAVITY: float = 1.5
 HERO_SPEED: float = 1.75
@@ -27,8 +27,8 @@ class Game:
         pygame.init()
         
         # Display setup
-        self.screen: pygame.Surface = pygame.display.set_mode((DISPLAY_HEIGHT, DISPLAY_WIDTH), pygame.RESIZABLE)
-        self.surface: pygame.Surface = pygame.Surface((DISPLAY_HEIGHT, DISPLAY_WIDTH))
+        self.screen: pygame.Surface = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
+        self.surface: pygame.Surface = pygame.Surface((DISPLAY_WIDTH, DISPLAY_HEIGHT))
         pygame.display.set_caption("LandStalker")
         
         # Game state
@@ -52,7 +52,7 @@ class Game:
         self.prev_keys: dict = {}
         
         # GUI setup
-        self.manager: pygame_gui.UIManager = pygame_gui.UIManager((800, 600), "ui.json")
+        self.manager: pygame_gui.UIManager = pygame_gui.UIManager((DISPLAY_WIDTH, DISPLAY_HEIGHT), "ui.json")
         self.hud_textbox: UITextBox = UITextBox(
             "",
             pygame.Rect((0, 0), (450, 36)),
@@ -143,8 +143,8 @@ class Game:
         )
         
         # Center camera on hero
-        self.camera_x = self.hero._screen_pos.x - DISPLAY_HEIGHT // 2
-        self.camera_y = self.hero._screen_pos.y - DISPLAY_WIDTH // 2
+        self.camera_x = self.hero._screen_pos.x - DISPLAY_WIDTH // 2
+        self.camera_y = self.hero._screen_pos.y - DISPLAY_HEIGHT // 2
         
         # Update hero screen position with new camera
         self.hero.update_camera(
