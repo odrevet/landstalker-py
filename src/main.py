@@ -270,7 +270,7 @@ class Game:
         tile_h: int = self.tiled_map.data.tileheight
         
         # Get hero's foot height and bounding box corners
-        height_at_foot: float = self.hero.get_foot_height(tile_h)
+        height_at_foot: float = self.hero.get_z_at_foot(tile_h)
         corners = self.hero.get_bbox_corners_world(tile_h)
         
         # Get tile coordinates for each corner
@@ -344,7 +344,7 @@ class Game:
     def can_move_to(self, next_x: float, next_y: float, check_cells: List[Tuple[int, int]]) -> bool:
         """Check if hero can move to the given position"""
         tile_h: int = self.tiled_map.data.tileheight
-        height_at_foot: float = self.hero.get_foot_height(tile_h)
+        height_at_foot: float = self.hero.get_z_at_foot(tile_h)
         
         for cell_x, cell_y in check_cells:
             cell: Optional[HeightmapCell] = self.heightmap.get_cell(cell_x, cell_y)

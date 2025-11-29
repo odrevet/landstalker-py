@@ -116,7 +116,7 @@ class Entity:
             raise RuntimeError("Bounding box not initialized. Call set_world_pos() first.")
         return self.bbox.get_corners_iso(tile_h, left_offset, top_offset, camera_x, camera_y)
     
-    def get_foot_height(self, tile_h: int) -> float:
+    def get_z_at_foot(self, tile_h: int) -> float:
         """Get the height of the entity's feet (bottom of bounding box) in world Z
         
         Args:
@@ -127,7 +127,7 @@ class Entity:
         """
         if self.bbox is None:
             raise RuntimeError("Bounding box not initialized. Call set_world_pos() first.")
-        return self.bbox.get_foot_height(tile_h)
+        return self.bbox.get_z_at_foot(tile_h)
     
     def is_crate(self) -> bool:
         """Check if entity is a crate"""

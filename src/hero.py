@@ -99,7 +99,7 @@ class Hero(pygame.sprite.Sprite):
         
         return corners_iso
     
-    def get_foot_height(self, tile_h: int) -> float:
+    def get_z_at_foot(self, tile_h: int) -> float:
         """Get the height of the hero's feet (bottom of bounding box) in world Z
         
         Args:
