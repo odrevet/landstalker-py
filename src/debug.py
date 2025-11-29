@@ -180,12 +180,20 @@ def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y,
     
     # Draw label if provided
     if label:
-        font = pygame.font.SysFont("Arial", 14)
+        font = pygame.font.SysFont("Arial", 12)
         text_surf = font.render(label, True, color)
         # Position label above the top of the box
         label_x = top_points[3][0] + 14
         label_y = top_points[3][1] - 12
         screen.blit(text_surf, (label_x, label_y))
+        
+        # Draw coordinates below label
+        tile_x = bbox.world_pos.x / tile_height
+        tile_y = bbox.world_pos.y / tile_height
+        tile_z = bbox.world_pos.z / tile_height
+        coord_text = f"X: {bbox.world_pos.x:.1f} ({tile_x:.0f})\n Y: {bbox.world_pos.y:.1f} ({tile_y:.0f})\n Z: {bbox.world_pos.z:.1f} ({tile_z:.0f})"
+        coord_surf = font.render(coord_text, True, color)
+        screen.blit(coord_surf, (label_x, label_y + 12))
 
 
 # -------------------------------------------------------------
@@ -194,7 +202,7 @@ def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y,
 def draw_hero_boundbox(hero, screen, tile_height, camera_x, camera_y, left_offset, top_offset):
     """Draw hero's isometric bounding box."""
     draw_boundbox(hero.bbox, screen, tile_height, camera_x, camera_y, 
-                  left_offset, top_offset, color=(50, 255, 50), label="Hero")
+                  left_offset, top_offset, color=(205, 205, 250), label="Hero")
 
 
 # -------------------------------------------------------------
@@ -207,16 +215,16 @@ def draw_entity_boundbox(entity, screen, tile_height, camera_x, camera_y, left_o
     
     # Choose color based on entity type
     if entity.is_crate():
-        color = (255, 200, 50)  # Orange for crates
+        color = (255, 250, 50)
         label = f"Crate"
     elif entity.is_chest():
-        color = (255, 255, 50)  # Yellow for chests
+        color = (255, 255, 50)
         label = f"Chest"
     elif entity.is_npc():
-        color = (50, 200, 255)  # Cyan for NPCs
+        color = (50, 200, 255)
         label = f"NPC"
     else:
-        color = (200, 50, 255)  # Magenta for other entities
+        color = (200, 50, 255)
         label = f"{entity.entity_class}"
     
     draw_boundbox(entity.bbox, screen, tile_height, camera_x, camera_y, 
