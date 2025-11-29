@@ -80,18 +80,7 @@ class BoundingBox:
             corners_iso.append((iso_x - camera_x, iso_y - camera_y))
         
         return corners_iso
-    
-    def get_z_at_foot(self, tile_h: int) -> float:
-        """Get the height of the entity's feet (bottom of bounding box) in world Z
         
-        Args:
-            tile_h: Tile height in pixels
-            
-        Returns:
-            Z coordinate of entity's feet
-        """
-        return self.world_pos.z + self.height_in_tiles * tile_h
-    
     def get_center(self, tile_h: int) -> Tuple[float, float]:
         """Get the center position of the bounding box in world XY coordinates
         

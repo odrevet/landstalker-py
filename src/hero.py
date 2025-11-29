@@ -98,18 +98,7 @@ class Hero(pygame.sprite.Sprite):
             corners_iso.append((iso_x - camera_x, iso_y - camera_y))
         
         return corners_iso
-    
-    def get_z_at_foot(self, tile_h: int) -> float:
-        """Get the height of the hero's feet (bottom of bounding box) in world Z
         
-        Args:
-            tile_h: Tile height in pixels
-            
-        Returns:
-            Z coordinate of hero's feet
-        """
-        return self._world_pos.z + self.HEIGHT * tile_h
-    
     def set_world_pos(self, x: float, y: float, z: float, 
                      heightmap_left_offset: int, heightmap_top_offset: int, 
                      camera_x: float, camera_y: float) -> None:
@@ -154,9 +143,10 @@ class Hero(pygame.sprite.Sprite):
         iso_x: float
         iso_y: float
         iso_x, iso_y = cartesian_to_iso(self._world_pos.x - offset_x, self._world_pos.y - offset_y)
+        HERO_HEIGHT: int = 32
         
         self._screen_pos.x = iso_x - 16 - camera_x
-        self._screen_pos.y = iso_y - self._world_pos.z + 12 - camera_y
+        self._screen_pos.y = iso_y - self._world_pos.z + 12 - camera_y + HERO_HEIGHT
     
     def draw(self, surface: pygame.Surface) -> None:
         """Draw the hero on the surface"""

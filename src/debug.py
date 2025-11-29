@@ -149,8 +149,8 @@ def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y,
     corners_iso = bbox.get_corners_iso(tile_height, left_offset, top_offset, camera_x, camera_y)
     
     # Get Z positions for top and bottom of bounding box
-    z_top = bbox.world_pos.z - bbox.height_in_tiles * tile_height
-    z_bottom = bbox.world_pos.z
+    z_top = bbox.world_pos.z - bbox.height_in_tiles * tile_height - bbox.height_in_tiles * tile_height
+    z_bottom = bbox.world_pos.z - bbox.height_in_tiles * tile_height
     
     # Create points for top rectangle (with Z offset)
     top_points = [
@@ -180,10 +180,10 @@ def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y,
     
     # Draw label if provided
     if label:
-        font = pygame.font.SysFont("Arial", 10)
+        font = pygame.font.SysFont("Arial", 14)
         text_surf = font.render(label, True, color)
         # Position label above the top of the box
-        label_x = top_points[3][0] + 2  # Use top corner
+        label_x = top_points[3][0] + 14
         label_y = top_points[3][1] - 12
         screen.blit(text_surf, (label_x, label_y))
 

@@ -55,7 +55,7 @@ class Game:
         self.manager: pygame_gui.UIManager = pygame_gui.UIManager((DISPLAY_WIDTH, DISPLAY_HEIGHT), "ui.json")
         self.hud_textbox: UITextBox = UITextBox(
             "",
-            pygame.Rect((0, 0), (450, 36)),
+            pygame.Rect((0, 0), (DISPLAY_WIDTH, 36)),
             manager=self.manager,
             object_id="#hud_textbox",
         )
@@ -270,7 +270,7 @@ class Game:
         tile_h: int = self.tiled_map.data.tileheight
         
         # Get hero's foot height and bounding box corners
-        height_at_foot: float = self.hero.get_z_at_foot(tile_h)
+        height_at_foot: float = self.hero.get_world_pos().z
         corners = self.hero.get_bbox_corners_world(tile_h)
         
         # Get tile coordinates for each corner
@@ -325,7 +325,7 @@ class Game:
             else:
                 # Hero is on or below ground, snap to ground
                 hero_pos = self.hero.get_world_pos()
-                correct_z: float = max_ground_height - self.hero.HEIGHT * tile_h
+                correct_z: float = max_ground_height
                 
                 if hero_pos.z != correct_z:
                     self.hero.set_world_pos(
@@ -344,7 +344,7 @@ class Game:
     def can_move_to(self, next_x: float, next_y: float, check_cells: List[Tuple[int, int]]) -> bool:
         """Check if hero can move to the given position"""
         tile_h: int = self.tiled_map.data.tileheight
-        height_at_foot: float = self.hero.get_z_at_foot(tile_h)
+        height_at_foot: float = self.hero.get_world_pos().z
         
         for cell_x, cell_y in check_cells:
             cell: Optional[HeightmapCell] = self.heightmap.get_cell(cell_x, cell_y)
@@ -507,19 +507,15 @@ class Game:
     
     def update_hud(self) -> None:
         """Update HUD with debug information"""
-        if self.debug_mode and self.heightmap.cells:
+        if self.debug_mode:
             hero_pos = self.hero.get_world_pos()
             tile_h: int = self.tiled_map.data.tileheight
-            world_z: float = hero_pos.z + self.hero.HEIGHT * tile_h
             tile_x: float = hero_pos.x // tile_h
             tile_y: float = hero_pos.y // tile_h
-            tile_z: float = world_z // tile_h
-            
-            camera_status: str = "LOCKED" if self.camera_locked else "FREE"
+            tile_z: float = hero_pos.z // tile_h
             
             self.coord_label.set_text(
-                f"Room: {self.room_number} | X: {hero_pos.x:.1f}, Y: {hero_pos.y:.1f}, Z: {world_z:.1f} | "
-                f"T X: {tile_x:.0f}, Y: {tile_y:.0f}, Z: {tile_z:.0f} | CAM: {camera_status}"
+                f"X: {hero_pos.x:.1f} ({tile_x:.0f}), Y: {hero_pos.y:.1f} ({tile_y:.0f}), Z: {hero_pos.z:.1f} ({tile_z:.0f})\n "
             )
     
     def render(self) -> None:
