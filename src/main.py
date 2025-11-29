@@ -13,8 +13,8 @@ from heightmap import Heightmap, HeightmapCell
 from debug import draw_hero_boundbox, draw_heightmap, draw_warps, draw_entities_boundboxes
 
 # Constants
-DISPLAY_WIDTH: int = 320
-DISPLAY_HEIGHT: int = 448
+DISPLAY_WIDTH: int = 224
+DISPLAY_HEIGHT: int = 320
 CAMERA_SPEED: int = 5
 GRAVITY: float = 1.5
 HERO_SPEED: float = 1.75
