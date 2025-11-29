@@ -2,9 +2,7 @@ import pygame
 from pygame.math import Vector2, Vector3
 from typing import Tuple, List
 from utils import cartesian_to_iso
-
-# Margin to reduce bounding box size for tighter collision detection
-MARGIN: int = 4
+from boundingbox import BoundingBox, MARGIN
 
 
 class Hero(pygame.sprite.Sprite):
@@ -21,10 +19,13 @@ class Hero(pygame.sprite.Sprite):
         
         self._world_pos: Vector3 = Vector3(x, y, z)
         self._screen_pos: Vector2 = Vector2()
-        self.HEIGHT: int = 2   # height in tile
+        self.HEIGHT: int = 2   # height in tiles
         self.touch_ground: bool = False
         self.is_jumping: bool = False
         self.current_jump: int = 0
+        
+        # Bounding box for collision detection
+        self.bbox: BoundingBox = BoundingBox(self._world_pos, self.HEIGHT)
         
         # Cache for update_screen_pos parameters
         self._heightmap_left_offset: int = 0

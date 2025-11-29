@@ -6,11 +6,11 @@ import pygame
 import pygame_gui
 from pygame_gui.elements.ui_text_box import UITextBox
 
-from hero import Hero, MARGIN
+from hero import Hero
 from utils import *
 from tiledmap import Tiledmap
 from heightmap import Heightmap, HeightmapCell
-from debug import draw_hero_boundbox, draw_heightmap, draw_warps
+from debug import draw_hero_boundbox, draw_heightmap, draw_warps, draw_entities_boundboxes
 
 # Constants
 DISPLAY_WIDTH: int = 320
@@ -541,6 +541,16 @@ class Game:
             
             draw_hero_boundbox(
                 self.hero,
+                self.surface,
+                self.tiled_map.data.tileheight,
+                self.camera_x,
+                self.camera_y,
+                self.heightmap.left_offset,
+                self.heightmap.top_offset
+            )
+            
+            draw_entities_boundboxes(
+                self.tiled_map.entities,
                 self.surface,
                 self.tiled_map.data.tileheight,
                 self.camera_x,

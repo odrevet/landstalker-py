@@ -1,5 +1,7 @@
 import pygame
+from typing import List
 from utils import cartesian_to_iso
+from boundingbox import BoundingBox
 
 
 # -------------------------------------------------------------
@@ -126,19 +128,29 @@ def draw_heightmap(screen, heightmap, tile_height, camera_x, camera_y):
 
 
 # -------------------------------------------------------------
-#  DRAW HERO BOUNDING BOX
+#  DRAW BOUNDING BOX (GENERIC)
 # -------------------------------------------------------------
-def draw_hero_boundbox(hero, screen, tile_height, camera_x, camera_y, left_offset, top_offset):
-    """Draw hero's isometric bounding box using helper functions."""
+def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y, 
+                  left_offset, top_offset, color=(50, 255, 50), label=None):
+    """Draw an isometric bounding box using BoundingBox object.
     
+    Args:
+        bbox: BoundingBox object to draw
+        screen: Pygame surface to draw on
+        tile_height: Height of tiles in pixels
+        camera_x: Camera X position
+        camera_y: Camera Y position
+        left_offset: Heightmap left offset
+        top_offset: Heightmap top offset
+        color: RGB color tuple for the bounding box
+        label: Optional text label to draw above the box
+    """
     # Get corner positions in isometric screen space
-    corners_iso = hero.get_bbox_corners_iso(tile_height, left_offset, top_offset, camera_x, camera_y)
+    corners_iso = bbox.get_corners_iso(tile_height, left_offset, top_offset, camera_x, camera_y)
     
     # Get Z positions for top and bottom of bounding box
-    z_top = hero._world_pos.z - hero.HEIGHT * tile_height
-    z_bottom = hero._world_pos.z + hero.HEIGHT * tile_height - hero.HEIGHT * tile_height
-    
-    color = (50, 255, 50)
+    z_top = bbox.world_pos.z - bbox.height_in_tiles * tile_height
+    z_bottom = bbox.world_pos.z
     
     # Create points for top rectangle (with Z offset)
     top_points = [
@@ -161,6 +173,65 @@ def draw_hero_boundbox(hero, screen, tile_height, camera_x, camera_y, left_offse
     
     # Draw bottom rectangle
     pygame.draw.lines(screen, color, True, bottom_points)
+    
+    # Draw vertical edges connecting top and bottom
+    for i in range(4):
+        pygame.draw.line(screen, color, top_points[i], bottom_points[i], 1)
+    
+    # Draw label if provided
+    if label:
+        font = pygame.font.SysFont("Arial", 10)
+        text_surf = font.render(label, True, color)
+        # Position label above the top of the box
+        label_x = top_points[3][0] + 2  # Use top corner
+        label_y = top_points[3][1] - 12
+        screen.blit(text_surf, (label_x, label_y))
+
+
+# -------------------------------------------------------------
+#  DRAW HERO BOUNDING BOX
+# -------------------------------------------------------------
+def draw_hero_boundbox(hero, screen, tile_height, camera_x, camera_y, left_offset, top_offset):
+    """Draw hero's isometric bounding box."""
+    draw_boundbox(hero.bbox, screen, tile_height, camera_x, camera_y, 
+                  left_offset, top_offset, color=(50, 255, 50), label="Hero")
+
+
+# -------------------------------------------------------------
+#  DRAW ENTITY BOUNDING BOX
+# -------------------------------------------------------------
+def draw_entity_boundbox(entity, screen, tile_height, camera_x, camera_y, left_offset, top_offset):
+    """Draw entity's isometric bounding box."""
+    if entity.bbox is None:
+        return
+    
+    # Choose color based on entity type
+    if entity.is_crate():
+        color = (255, 200, 50)  # Orange for crates
+        label = f"Crate"
+    elif entity.is_chest():
+        color = (255, 255, 50)  # Yellow for chests
+        label = f"Chest"
+    elif entity.is_npc():
+        color = (50, 200, 255)  # Cyan for NPCs
+        label = f"NPC"
+    else:
+        color = (200, 50, 255)  # Magenta for other entities
+        label = f"{entity.entity_class}"
+    
+    draw_boundbox(entity.bbox, screen, tile_height, camera_x, camera_y, 
+                  left_offset, top_offset, color=color, label=label)
+
+
+# -------------------------------------------------------------
+#  DRAW ENTITIES BOUNDING BOXES
+# -------------------------------------------------------------
+def draw_entities_boundboxes(entities: List, screen, tile_height, camera_x, camera_y, 
+                              left_offset, top_offset):
+    """Draw bounding boxes for all entities."""
+    for entity in entities:
+        draw_entity_boundbox(entity, screen, tile_height, camera_x, camera_y, 
+                            left_offset, top_offset)
 
 
 # -------------------------------------------------------------
