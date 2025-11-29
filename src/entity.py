@@ -18,9 +18,9 @@ class Entity:
         self.type: int = data.get('Type', 0)
         
         # Position (in tile coordinates from TMX)
-        self.x: float = data.get('X', 0.0) // 2
-        self.y: float = data.get('Y', 0.0) // 2
-        self.z: float = data.get('Z', 0.0) // 2
+        self.x: float = data.get('X', 0.0)
+        self.y: float = data.get('Y', 0.0)
+        self.z: float = data.get('Z', 0.0)
         
         # World position (will be calculated based on tile size)
         self.world_pos: Optional[Vector3] = None
@@ -62,9 +62,9 @@ class Entity:
             tile_h: Tile height in pixels
         """
         self.world_pos = Vector3(
-            self.x * tile_h,
-            self.y * tile_h,
-            self.z * tile_h
+            self.x * (tile_h  // 2),
+            self.y * (tile_h  // 2),
+            self.z * (tile_h  // 2)
         )
         # Initialize bounding box after world position is set
         self.bbox = BoundingBox(self.world_pos, self.HEIGHT)
