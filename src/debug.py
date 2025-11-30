@@ -191,7 +191,8 @@ def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y,
         tile_x = bbox.world_pos.x / tile_height
         tile_y = bbox.world_pos.y / tile_height
         tile_z = bbox.world_pos.z / tile_height
-        coord_text = f"X: {bbox.world_pos.x:.1f} ({tile_x:.0f})\n Y: {bbox.world_pos.y:.1f} ({tile_y:.0f})\n Z: {bbox.world_pos.z:.1f} ({tile_z:.0f})"
+
+        coord_text = f"X: {bbox.world_pos.x:.1f} ({tile_x:.1f})\n Y: {bbox.world_pos.y:.1f} ({tile_y:.1f})\n Z: {bbox.world_pos.z:.1f} ({tile_z:.1f})"
         coord_surf = font.render(coord_text, True, color)
         screen.blit(coord_surf, (label_x, label_y + 12))
 
