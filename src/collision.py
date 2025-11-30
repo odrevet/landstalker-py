@@ -242,3 +242,190 @@ def can_move_to_position(hero: Hero,
             return False  # Blocked by entity
     
     return True
+
+
+def get_entity_in_front_of_hero(hero: Hero,
+                                entities: List[Entity],
+                                tile_h: int,
+                                max_distance: float = None) -> Optional[Entity]:
+    """Get the entity directly in front of the hero within pickup range
+    
+    Args:
+        hero: The hero object
+        entities: List of entities to check
+        tile_h: Tile height in pixels
+        max_distance: Maximum distance to check (default: half a tile)
+        
+    Returns:
+        Entity in front of hero, or None if no entity found
+    """
+    if max_distance is None:
+        max_distance = tile_h
+    
+    hero_pos = hero.get_world_pos()
+    hero_bbox = hero.get_bounding_box(tile_h)
+    hero_x, hero_y, hero_w, hero_h = hero_bbox
+    hero_center_x = hero_x + hero_w / 2
+    hero_center_y = hero_y + hero_h / 2
+    
+    print(f"\n=== PICKUP DEBUG ===")
+    print(f"Hero center: ({hero_center_x:.1f}, {hero_center_y:.1f}, {hero_pos.z:.1f})")
+    print(f"Max pickup distance: {max_distance:.1f}")
+    print(f"Total entities: {len(entities)}")
+    
+    closest_entity: Optional[Entity] = None
+    closest_distance: float = float('inf')
+    
+    for entity in entities:
+        print(f"\nChecking entity: {entity.name} (class: {entity.entity_class})")
+        print(f"  - no_pickup: {entity.no_pickup}")
+        print(f"  - visible: {entity.visible}")
+        print(f"  - solid: {entity.solid}")
+        
+        # Skip entities that can't be picked up
+        if entity.no_pickup:
+            print(f"  -> SKIPPED (no_pickup is True)")
+            continue
+        
+        if not entity.visible:
+            print(f"  -> SKIPPED (not visible)")
+            continue
+            
+        if not entity.solid:
+            print(f"  -> SKIPPED (not solid)")
+            continue
+        
+        # Get entity position
+        entity_bbox = entity.get_bounding_box(tile_h)
+        e_x, e_y, e_w, e_h = entity_bbox
+        e_center_x = e_x + e_w / 2
+        e_center_y = e_y + e_h / 2
+        
+        print(f"  - Entity center: ({e_center_x:.1f}, {e_center_y:.1f}, {entity.world_pos.z:.1f})")
+        
+        # Check if entity is at similar Z level (within 1 tile)
+        entity_z = entity.world_pos.z
+        z_diff = abs(hero_pos.z - entity_z)
+        print(f"  - Z difference: {z_diff:.1f} (max: {tile_h})")
+        
+        if z_diff > tile_h:
+            print(f"  -> SKIPPED (Z too different)")
+            continue
+        
+        # Calculate distance from hero center to entity center
+        dx = e_center_x - hero_center_x
+        dy = e_center_y - hero_center_y
+        distance = (dx * dx + dy * dy) ** 0.5
+        
+        print(f"  - XY distance: {distance:.1f} on {max_distance}")
+        
+        # Check if within range
+        if distance <= max_distance:
+            print(f"  -> IN RANGE!")
+            if distance < closest_distance:
+                print(f"  -> NEW CLOSEST ENTITY")
+                closest_entity = entity
+                closest_distance = distance
+        else:
+            print(f"  -> OUT OF RANGE")
+    
+    if closest_entity:
+        print(f"\n✓ Found entity: {closest_entity.name} at distance {closest_distance:.1f}")
+    else:
+        print(f"\n✗ No entity found in range")
+    print("===================\n")
+    
+    return closest_entity
+
+
+def can_place_entity_at_position(entity: Entity,
+                                 x: float,
+                                 y: float,
+                                 z: float,
+                                 entities: List[Entity],
+                                 heightmap,
+                                 tile_h: int) -> bool:
+    """Check if an entity can be placed at the given position
+    
+    Args:
+        entity: The entity to place
+        x: X position in world coordinates
+        y: Y position in world coordinates
+        z: Z position in world coordinates
+        entities: List of other entities to check collision against
+        heightmap: The heightmap to check terrain collision
+        tile_h: Tile height in pixels
+        
+    Returns:
+        True if position is valid, False otherwise
+    """
+    # Check heightmap bounds and walkability
+    tile_x = int(x // tile_h)
+    tile_y = int(y // tile_h)
+    
+    if (tile_x < 0 or tile_y < 0 or
+        tile_x >= heightmap.get_width() or
+        tile_y >= heightmap.get_height()):
+        return False
+    
+    cell = heightmap.get_cell(tile_x, tile_y)
+    if not cell or not cell.is_walkable():
+        return False
+    
+    # Check if Z is at ground level
+    ground_z = cell.height * tile_h
+    if z != ground_z:
+        return False
+    
+    # Create temporary bounding box for the entity at new position
+    temp_pos = Vector3(x, y, z)
+    original_pos = entity.world_pos
+    entity.world_pos = temp_pos
+    
+    try:
+        entity_bbox = entity.get_bounding_box(tile_h)
+        entity_height = entity.HEIGHT * tile_h
+        
+        # Check collision with other entities
+        for other_entity in entities:
+            if other_entity is entity:
+                continue
+            
+            if check_entity_collision_3d(entity_bbox, z, entity_height, other_entity, tile_h):
+                return False
+        
+        return True
+    finally:
+        # Restore original position
+        entity.world_pos = original_pos
+
+
+def get_position_in_front_of_hero(hero: Hero, tile_h: int, distance: float = None) -> Tuple[float, float]:
+    """Calculate a position in front of the hero based on their facing direction
+    
+    For now, this returns a position 1 tile in front based on the isometric layout.
+    In a full implementation, this would use the hero's facing direction.
+    
+    Args:
+        hero: The hero object
+        tile_h: Tile height in pixels
+        distance: Distance in front (default: 1 tile)
+        
+    Returns:
+        Tuple of (x, y) in world coordinates
+    """
+    if distance is None:
+        distance = tile_h
+    
+    hero_pos = hero.get_world_pos()
+    hero_bbox = hero.get_bounding_box(tile_h)
+    hero_x, hero_y, hero_w, hero_h = hero_bbox
+    hero_center_x = hero_x + hero_w / 2
+    hero_center_y = hero_y + hero_h / 2
+    
+    # For isometric games, "in front" depends on facing direction
+    # This is a simplified version - you should use hero's actual facing direction
+    # For now, try positions in cardinal directions and pick the closest to center
+    
+    # Return position slightly offset (you can improve this with actual facing direction)
+    return (hero_center_x, hero_center_y + distance)

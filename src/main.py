@@ -1,3 +1,4 @@
+from pygame.math import Vector3
 import sys
 import argparse
 from typing import List, Tuple, Optional
@@ -5,13 +6,15 @@ from typing import List, Tuple, Optional
 import pygame
 import pygame_gui
 from pygame_gui.elements.ui_text_box import UITextBox
+from pygame.math import Vector3
 
 from hero import Hero
 from utils import *
 from tiledmap import Tiledmap
 from heightmap import Heightmap, HeightmapCell
 from debug import draw_hero_boundbox, draw_heightmap, draw_warps, draw_entities_boundboxes
-from collision import resolve_entity_collision, can_move_to_position, get_entity_top_at_position
+from collision import (resolve_entity_collision, can_move_to_position, get_entity_top_at_position,
+                      get_entity_in_front_of_hero, can_place_entity_at_position, get_position_in_front_of_hero)
 
 # Constants
 DISPLAY_HEIGHT: int = 224
@@ -322,10 +325,13 @@ class Game:
                 cells[left_y][left_x].height * tile_h
             )
             
-            # Check for entity surfaces below the hero
+            # Check for entity surfaces below the hero (excluding grabbed entity)
             hero_x, hero_y, hero_w, hero_h = hero_bbox
+            entities_to_check = [e for e in self.tiled_map.entities 
+                               if e is not self.hero.grabbed_entity]
+            
             entity_top = get_entity_top_at_position(
-                self.tiled_map.entities,
+                entities_to_check,
                 hero_x,
                 hero_y,
                 hero_w,
@@ -361,6 +367,16 @@ class Game:
                     self.camera_y
                 )
                 
+                # Update grabbed entity position if carrying something
+                if self.hero.is_grabbing:
+                    self.hero.update_grabbed_entity_position(
+                        self.heightmap.left_offset,
+                        self.heightmap.top_offset,
+                        self.camera_x,
+                        self.camera_y,
+                        tile_h
+                    )
+                
                 if self.camera_locked:
                     self.center_camera_on_hero()
             else:
@@ -375,6 +391,16 @@ class Game:
                         self.camera_x,
                         self.camera_y
                     )
+                    
+                    # Update grabbed entity position if carrying something
+                    if self.hero.is_grabbing:
+                        self.hero.update_grabbed_entity_position(
+                            self.heightmap.left_offset,
+                            self.heightmap.top_offset,
+                            self.camera_x,
+                            self.camera_y,
+                            tile_h
+                        )
                     
                     if self.camera_locked:
                         self.center_camera_on_hero()
@@ -498,6 +524,16 @@ class Game:
                 self.camera_y
             )
             
+            # Update grabbed entity position if carrying something
+            if self.hero.is_grabbing:
+                self.hero.update_grabbed_entity_position(
+                    self.heightmap.left_offset,
+                    self.heightmap.top_offset,
+                    self.camera_x,
+                    self.camera_y,
+                    tile_h
+                )
+            
             if self.camera_locked:
                 self.center_camera_on_hero()
     
@@ -519,11 +555,99 @@ class Game:
                     self.camera_y
                 )
                 
+                # Update grabbed entity position if carrying something
+                tile_h: int = self.tiled_map.data.tileheight
+                if self.hero.is_grabbing:
+                    self.hero.update_grabbed_entity_position(
+                        self.heightmap.left_offset,
+                        self.heightmap.top_offset,
+                        self.camera_x,
+                        self.camera_y,
+                        tile_h
+                    )
+                
                 if self.camera_locked:
                     self.center_camera_on_hero()
             else:
                 self.hero.is_jumping = False
                 self.hero.current_jump = 0
+    
+    def handle_pickup_and_place(self, keys: pygame.key.ScancodeWrapper) -> None:
+        """Handle picking up and placing entities"""
+        tile_h: int = self.tiled_map.data.tileheight
+        
+        # Check if action button (A key) was just pressed
+        if not self.is_key_just_pressed(pygame.K_a, keys):
+            return
+        
+        print(f"handle pickup {self.hero.is_grabbing}")
+        if not self.hero.is_grabbing:
+            # Try to grab an entity
+            entity = get_entity_in_front_of_hero(
+                self.hero,
+                self.tiled_map.entities,
+                tile_h
+            )
+
+            
+            if entity is not None:
+                # Grab the entity
+                self.hero.grab_entity(entity)
+                
+                # Position entity above hero
+                self.hero.update_grabbed_entity_position(
+                    self.heightmap.left_offset,
+                    self.heightmap.top_offset,
+                    self.camera_x,
+                    self.camera_y,
+                    tile_h
+                )
+                
+                print(f"Grabbed entity: {entity.name}")
+        else:
+            # Try to place the entity in front of hero
+            hero_pos = self.hero.get_world_pos()
+            
+            # Get position in front of hero
+            place_x, place_y = get_position_in_front_of_hero(self.hero, tile_h)
+            
+            # Get ground Z at that position
+            place_tile_x = int(place_x // tile_h)
+            place_tile_y = int(place_y // tile_h)
+            
+            if (place_tile_x >= 0 and place_tile_y >= 0 and
+                place_tile_x < self.heightmap.get_width() and
+                place_tile_y < self.heightmap.get_height()):
+                
+                cell = self.heightmap.get_cell(place_tile_x, place_tile_y)
+                if cell:
+                    place_z = cell.height * tile_h
+                    
+                    # Check if entity can be placed there
+                    if can_place_entity_at_position(
+                        self.hero.grabbed_entity,
+                        place_x,
+                        place_y,
+                        place_z,
+                        self.tiled_map.entities,
+                        self.heightmap,
+                        tile_h
+                    ):
+                        # Place the entity
+                        self.hero.grabbed_entity.world_pos = Vector3(place_x, place_y, place_z)
+                        if self.hero.grabbed_entity.bbox:
+                            self.hero.grabbed_entity.bbox.update_position(self.hero.grabbed_entity.world_pos)
+                        
+                        print(f"Placed entity: {self.hero.grabbed_entity.name} at ({place_tile_x}, {place_tile_y})")
+                        
+                        # Release the entity
+                        self.hero.release_entity()
+                    else:
+                        print("Cannot place entity here - position blocked")
+                else:
+                    print("Cannot place entity here - invalid terrain")
+            else:
+                print("Cannot place entity here - out of bounds")
     
     def handle_debug_toggles(self, keys: pygame.key.ScancodeWrapper) -> None:
         """Handle debug flag toggles"""
@@ -629,6 +753,7 @@ class Game:
                 self.apply_gravity()
                 self.handle_hero_movement(keys)
                 self.handle_jump(keys)
+                self.handle_pickup_and_place(keys)
                 self.check_warp_collision()  # Check for warps after movement
             
             # Update
@@ -639,7 +764,7 @@ class Game:
             self.render()
             
             # Store current key states for next frame
-            self.prev_keys = {k: keys[k] for k in [pygame.K_d, pygame.K_LEFT, pygame.K_RIGHT]}
+            self.prev_keys = {k: keys[k] for k in [pygame.K_d, pygame.K_LEFT, pygame.K_RIGHT, pygame.K_a]}
         
         pygame.quit()
         sys.exit()
