@@ -111,6 +111,10 @@ class Tiledmap:
                 # Create Entity object
                 entity = Entity(entity_data)
                 
+
+                entity.x -= 12  # hardcoded offsetss
+                entity.y -= 12
+
                 # Calculate world position
                 entity.set_world_pos(self.data.tileheight)
                 
