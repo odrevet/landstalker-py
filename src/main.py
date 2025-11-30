@@ -11,6 +11,7 @@ from utils import *
 from tiledmap import Tiledmap
 from heightmap import Heightmap, HeightmapCell
 from debug import draw_hero_boundbox, draw_heightmap, draw_warps, draw_entities_boundboxes
+from collision import resolve_entity_collision, can_move_to_position, get_entity_top_at_position
 
 # Constants
 DISPLAY_HEIGHT: int = 224
@@ -289,12 +290,14 @@ class Game:
         return False
     
     def apply_gravity(self) -> None:
-        """Apply gravity to hero using bounding box corners"""
+        """Apply gravity to hero using bounding box corners, considering both terrain and entities"""
         tile_h: int = self.tiled_map.data.tileheight
         
-        # Get hero's foot height and bounding box corners
-        height_at_foot: float = self.hero.get_world_pos().z
+        # Get hero's foot height and bounding box
+        hero_pos = self.hero.get_world_pos()
+        height_at_foot: float = hero_pos.z
         corners = self.hero.get_bbox_corners_world(tile_h)
+        hero_bbox = self.hero.get_bounding_box(tile_h)
         
         # Get tile coordinates for each corner
         # corners are: (left, bottom, right, top)
@@ -311,7 +314,7 @@ class Game:
         if not self.hero.is_jumping:
             cells = self.heightmap.cells
             
-            # Find the highest ground level under the hero
+            # Find the highest ground level under the hero (terrain)
             max_ground_height: float = max(
                 cells[top_y][top_x].height * tile_h,
                 cells[bottom_y][bottom_x].height * tile_h,
@@ -319,17 +322,32 @@ class Game:
                 cells[left_y][left_x].height * tile_h
             )
             
-            # Check if hero is above ground
-            if max_ground_height < height_at_foot:
+            # Check for entity surfaces below the hero
+            hero_x, hero_y, hero_w, hero_h = hero_bbox
+            entity_top = get_entity_top_at_position(
+                self.tiled_map.entities,
+                hero_x,
+                hero_y,
+                hero_w,
+                hero_h,
+                height_at_foot,
+                tile_h
+            )
+            
+            # Use the highest surface (terrain or entity)
+            max_surface_height: float = max_ground_height
+            if entity_top is not None:
+                max_surface_height = max(max_ground_height, entity_top)
+            
+            # Check if hero is above the highest surface
+            if max_surface_height < height_at_foot:
                 # Hero is in the air, apply gravity
-                hero_pos = self.hero.get_world_pos()
                 new_z: float = hero_pos.z - GRAVITY
                 
-                # Check if gravity would push hero below ground
-                new_foot_height: float = new_z + self.hero.HEIGHT * tile_h
-                if new_foot_height <= max_ground_height:
-                    # Snap to ground level
-                    new_z = max_ground_height - self.hero.HEIGHT * tile_h
+                # Check if gravity would push hero below surface
+                if new_z <= max_surface_height:
+                    # Snap to surface level
+                    new_z = max_surface_height
                     self.hero.touch_ground = True
                 else:
                     # Still falling
@@ -346,9 +364,8 @@ class Game:
                 if self.camera_locked:
                     self.center_camera_on_hero()
             else:
-                # Hero is on or below ground, snap to ground
-                hero_pos = self.hero.get_world_pos()
-                correct_z: float = max_ground_height
+                # Hero is on or below surface, snap to surface
+                correct_z: float = max_surface_height
                 
                 if hero_pos.z != correct_z:
                     self.hero.set_world_pos(
@@ -365,7 +382,7 @@ class Game:
                 self.hero.touch_ground = True
     
     def can_move_to(self, next_x: float, next_y: float, check_cells: List[Tuple[int, int]]) -> bool:
-        """Check if hero can move to the given position"""
+        """Check if hero can move to the given position (heightmap check only)"""
         tile_h: int = self.tiled_map.data.tileheight
         height_at_foot: float = self.hero.get_world_pos().z
         
@@ -379,7 +396,7 @@ class Game:
         return True
     
     def handle_hero_movement(self, keys: pygame.key.ScancodeWrapper) -> None:
-        """Handle hero movement using bounding box helpers"""
+        """Handle hero movement using bounding box helpers with 3D entity collision"""
         if keys[pygame.K_LSHIFT]:  # Camera mode
             return
         
@@ -459,6 +476,20 @@ class Game:
                 moved = True
         
         if moved:
+            # Resolve entity collisions in XY plane
+            # This only handles horizontal collision, not Z-axis (gravity handles that)
+            new_x, new_y = resolve_entity_collision(
+                self.hero,
+                self.tiled_map.entities,
+                new_x,
+                new_y,
+                tile_h,
+                self.heightmap.left_offset,
+                self.heightmap.top_offset,
+                self.camera_x,
+                self.camera_y
+            )
+            
             self.hero.set_world_pos(
                 new_x, new_y, hero_pos.z,
                 self.heightmap.left_offset,
