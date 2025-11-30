@@ -218,13 +218,13 @@ def draw_entity_boundbox(entity, screen, tile_height, camera_x, camera_y, left_o
         color = (255, 250, 50)
         label = f"Crate"
     elif entity.is_chest():
-        color = (255, 255, 50)
+        color = (25, 25, 50)
         label = f"Chest"
     elif entity.is_npc():
         color = (50, 200, 255)
         label = f"NPC"
     else:
-        color = (200, 50, 255)
+        color = (200, 150, 255)
         label = f"{entity.entity_class}"
     
     draw_boundbox(entity.bbox, screen, tile_height, camera_x, camera_y, 

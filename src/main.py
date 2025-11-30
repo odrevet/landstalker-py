@@ -27,7 +27,16 @@ class Game:
         pygame.init()
         
         # Display setup
-        self.screen: pygame.Surface = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
+        self.is_fullscreen: bool = args.fullscreen
+        if self.is_fullscreen:
+            self.screen = pygame.display.set_mode(
+                (0, 0), pygame.FULLSCREEN
+            )
+        else:
+            self.screen = pygame.display.set_mode(
+                (DISPLAY_WIDTH, DISPLAY_HEIGHT)
+            )
+
         self.surface: pygame.Surface = pygame.Surface((DISPLAY_WIDTH, DISPLAY_HEIGHT))
         pygame.display.set_caption("LandStalker")
         
@@ -39,7 +48,7 @@ class Game:
         self.clock: pygame.time.Clock = pygame.time.Clock()
         
         # Debug flags
-        self.is_debug_draw_enabled: bool = False
+        self.is_debug_draw_enabled: bool = True
         self.is_height_map_displayed: bool = False
         self.is_boundbox_displayed: bool = False
         self.is_warps_displayed: bool = False
@@ -47,6 +56,7 @@ class Game:
         
         self.prev_hero_tile_x: int = -1
         self.prev_hero_tile_y: int = -1
+
 
         # Key state tracking for toggles
         self.prev_keys: dict = {}
@@ -166,7 +176,20 @@ class Game:
             if event.type == pygame.QUIT:
                 return False
             elif event.type == pygame.VIDEORESIZE:
-                self.screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
+                if not self.is_fullscreen:
+                    self.screen = pygame.display.set_mode(event.size, pygame.RESIZABLE)
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_F11:
+                    # Toggle fullscreen
+                    self.is_fullscreen = not self.is_fullscreen
+                    if self.is_fullscreen:
+                        self.screen = pygame.display.set_mode(
+                            (0, 0), pygame.FULLSCREEN
+                        )
+                    else:
+                        self.screen = pygame.display.set_mode(
+                            (DISPLAY_WIDTH, DISPLAY_HEIGHT)
+                        )
             
             self.manager.process_events(event)
         
@@ -519,59 +542,33 @@ class Game:
             )
     
     def render(self) -> None:
-        """Render the game"""
         self.surface.fill((0, 0, 0))
         
-        # Draw map
+        # Draw map and debug
         self.tiled_map.draw(self.surface, self.camera_x, self.camera_y, self.hero)
-        
-        # Debug rendering
         if self.debug_mode and self.is_debug_draw_enabled:
-            draw_heightmap(
-                self.surface,
-                self.heightmap,
-                self.tiled_map.data.tileheight,
-                self.camera_x,
-                self.camera_y
-            )
-            
-            draw_hero_boundbox(
-                self.hero,
-                self.surface,
-                self.tiled_map.data.tileheight,
-                self.camera_x,
-                self.camera_y,
-                self.heightmap.left_offset,
-                self.heightmap.top_offset
-            )
-            
-            draw_entities_boundboxes(
-                self.tiled_map.entities,
-                self.surface,
-                self.tiled_map.data.tileheight,
-                self.camera_x,
-                self.camera_y,
-                self.heightmap.left_offset,
-                self.heightmap.top_offset
-            )
-            
-            draw_warps(
-                self.surface,
-                self.tiled_map.warps,
-                self.heightmap,
-                self.tiled_map.data.tileheight,
-                self.camera_x,
-                self.camera_y,
-                self.room_number
-            )
+            draw_heightmap(self.surface, self.heightmap, self.tiled_map.data.tileheight, self.camera_x, self.camera_y)
+            draw_hero_boundbox(self.hero, self.surface, self.tiled_map.data.tileheight, self.camera_x, self.camera_y, self.heightmap.left_offset, self.heightmap.top_offset)
+            draw_entities_boundboxes(self.tiled_map.entities, self.surface, self.tiled_map.data.tileheight, self.camera_x, self.camera_y, self.heightmap.left_offset, self.heightmap.top_offset)
+            draw_warps(self.surface, self.tiled_map.warps, self.heightmap, self.tiled_map.data.tileheight, self.camera_x, self.camera_y, self.room_number)
         
-        # Draw GUI
         self.manager.draw_ui(self.surface)
         
-        # Scale and display
-        scaled_surface: pygame.Surface = pygame.transform.scale(self.surface, self.screen.get_size())
-        self.screen.blit(scaled_surface, (0, 0))
+        # Scale with 4:3 aspect ratio
+        screen_w, screen_h = self.screen.get_size()
+        scale = min(screen_w / DISPLAY_WIDTH, screen_h / DISPLAY_HEIGHT)
+        scaled_w = int(DISPLAY_WIDTH * scale)
+        scaled_h = int(DISPLAY_HEIGHT * scale)
+        scaled_surface = pygame.transform.scale(self.surface, (scaled_w, scaled_h))
+        
+        # Center the scaled surface
+        offset_x = (screen_w - scaled_w) // 2
+        offset_y = (screen_h - scaled_h) // 2
+        self.screen.fill((0, 0, 0))
+        self.screen.blit(scaled_surface, (offset_x, offset_y))
+        
         pygame.display.flip()
+
     
     def run(self) -> None:
         """Main game loop"""
@@ -619,12 +616,13 @@ class Game:
 
 def main() -> None:
     # Initialize argument parser
-    parser: argparse.ArgumentParser = argparse.ArgumentParser(description="LandStalker Game")
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(description="LandStalker")
     parser.add_argument('-r', '--room', type=int, default=1, help='Room number')
     parser.add_argument('-d', '--debug', action='store_true', help='Enable debug mode')
     parser.add_argument('-x', type=int, default=0, help='Hero starting X position')
     parser.add_argument('-y', type=int, default=0, help='Hero starting Y position')
     parser.add_argument('-z', type=int, default=0, help='Hero starting Z position')
+    parser.add_argument('-f', '--fullscreen', action='store_true', help='Starts fullscreen')
     
     args: argparse.Namespace = parser.parse_args()
     

@@ -61,10 +61,13 @@ class Entity:
         Args:
             tile_h: Tile height in pixels
         """
+
+        print(f"{self.x} {self.y} {self.z}")
+
         self.world_pos = Vector3(
-            self.x * (tile_h  // 2),
-            self.y * (tile_h  // 2),
-            self.z * (tile_h  // 2)
+            self.x * tile_h,
+            self.y * tile_h,
+            self.z * tile_h
         )
         # Initialize bounding box after world position is set
         self.bbox = BoundingBox(self.world_pos, self.HEIGHT)
