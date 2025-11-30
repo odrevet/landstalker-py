@@ -27,6 +27,10 @@ class Hero(pygame.sprite.Sprite):
         self.is_grabbing: bool = False
         self.grabbed_entity: Optional[Entity] = None
 
+        self.is_grabbing: bool = False
+        self.grabbed_entity: Optional[Entity] = None
+        self.facing_direction: str = "DOWN"  # Can be: "UP", "DOWN", "LEFT", "RIGHT"
+
         # Bounding box for collision detection
         self.bbox: BoundingBox = BoundingBox(self._world_pos, self.HEIGHT)
         
@@ -182,6 +186,65 @@ class Hero(pygame.sprite.Sprite):
         """
         if not self.is_grabbing or self.grabbed_entity is None:
             return
+        
+        # Position entity directly above hero (1 tile higher in Z)
+        hero_pos = self.get_world_pos()
+        entity_z = hero_pos.z + (self.HEIGHT * tile_h)
+        
+        self.grabbed_entity.set_world_pos(tile_h)
+        self.grabbed_entity.world_pos = Vector3(hero_pos.x, hero_pos.y, entity_z)
+        
+        # Update entity's bounding box
+        if self.grabbed_entity.bbox:
+            self.grabbed_entity.bbox.update_position(self.grabbed_entity.world_pos)
+
+    def update_facing_direction(self, keys) -> None:
+        """Update hero's facing direction based on movement input
+        
+        Args:
+            keys: Pygame key state
+        """
+        import pygame
+        
+        # Priority: most recent key press determines facing
+        if keys[pygame.K_LEFT]:
+            self.facing_direction = "LEFT"
+        elif keys[pygame.K_RIGHT]:
+            self.facing_direction = "RIGHT"
+        elif keys[pygame.K_UP]:
+            self.facing_direction = "UP"
+        elif keys[pygame.K_DOWN]:
+            self.facing_direction = "DOWN"
+
+    def grab_entity(self, entity: Entity) -> None:
+        """Start grabbing an entity
+        
+        Args:
+            entity: The entity to grab
+        """
+        self.is_grabbing = True
+        self.grabbed_entity = entity
+
+    def release_entity(self) -> None:
+        """Release the currently grabbed entity"""
+        self.is_grabbing = False
+        self.grabbed_entity = None
+
+    def update_grabbed_entity_position(self, left_offset: int, top_offset: int, 
+                                    camera_x: float, camera_y: float, tile_h: int) -> None:
+        """Update the position of the grabbed entity to be above the hero
+        
+        Args:
+            left_offset: Heightmap left offset
+            top_offset: Heightmap top offset
+            camera_x: Camera X position
+            camera_y: Camera Y position
+            tile_h: Tile height in pixels
+        """
+        if not self.is_grabbing or self.grabbed_entity is None:
+            return
+        
+        from pygame.math import Vector3
         
         # Position entity directly above hero (1 tile higher in Z)
         hero_pos = self.get_world_pos()
