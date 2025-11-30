@@ -1,12 +1,11 @@
 from pygame.math import Vector3
 import sys
 import argparse
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Callable
 
 import pygame
 import pygame_gui
 from pygame_gui.elements.ui_text_box import UITextBox
-from pygame.math import Vector3
 
 from hero import Hero
 from utils import *
@@ -61,7 +60,6 @@ class Game:
         self.prev_hero_tile_x: int = -1
         self.prev_hero_tile_y: int = -1
 
-
         # Key state tracking for toggles
         self.prev_keys: dict = {}
         
@@ -79,6 +77,15 @@ class Game:
             manager=self.manager
         )
         
+        # Fade (warp) variables
+        self.fade_alpha: int = 0                # 0..255
+        self.fade_mode: Optional[str] = None    # "out", "in", or None
+        self.fade_speed: float = 600.0          # alpha units per second (adjust to taste)
+        self.fade_callback: Optional[Callable[[], None]] = None
+        self.fade_surface: pygame.Surface = pygame.Surface((DISPLAY_WIDTH, DISPLAY_HEIGHT))
+        self.fade_surface.fill((0, 0, 0))
+        self.fade_surface.set_alpha(0)
+
         # Load room
         self.tiled_map: Tiledmap = Tiledmap()
         self.tiled_map.load(self.room_number)
@@ -229,8 +236,44 @@ class Game:
                 self.camera_y
             )
     
+    def start_fade(self, callback: Callable[[], None]) -> None:
+        """Begin fade-out. Callback runs at full black, then auto fade-in."""
+        # Prevent re-triggering while a fade is active
+        if self.fade_mode is not None:
+            return
+        self.fade_mode = "out"
+        self.fade_alpha = 0
+        self.fade_callback = callback
+        # Lock camera / input while fading
+        self.camera_locked = True
+    
+    def update_fade(self, dt: float) -> None:
+        """Update fade alpha using delta time (seconds)."""
+        if self.fade_mode is None:
+            return
+
+        change = self.fade_speed * dt
+        if self.fade_mode == "out":
+            self.fade_alpha = min(255, int(self.fade_alpha + change))
+            if self.fade_alpha >= 255:
+                self.fade_alpha = 255
+                # run callback at full black
+                if self.fade_callback:
+                    cb = self.fade_callback
+                    self.fade_callback = None
+                    # execute warp / room-change while screen is black
+                    cb()
+                # start fading in
+                self.fade_mode = "in"
+        elif self.fade_mode == "in":
+            self.fade_alpha = max(0, int(self.fade_alpha - change))
+            if self.fade_alpha <= 0:
+                self.fade_alpha = 0
+                self.fade_mode = None
+        self.fade_surface.set_alpha(self.fade_alpha)
+    
     def check_warp_collision(self) -> bool:
-        """Check if hero is colliding with any warp and handle room transition"""
+        """Check if hero is colliding with any warp and handle room transition."""
         tile_h: int = self.tiled_map.data.tileheight
         
         # Get hero's bounding box using helper function
@@ -245,7 +288,7 @@ class Game:
             current_tile_y == self.prev_hero_tile_y):
             return False
         
-        # Update previous tile position
+        # Update previous tile position (pre-emptively to avoid re-trigger while fading)
         self.prev_hero_tile_x = current_tile_x
         self.prev_hero_tile_y = current_tile_y
         
@@ -254,40 +297,37 @@ class Game:
                 target_room: int = warp.get_target_room(self.room_number)
                 
                 if target_room != self.room_number:
-                    # Load new room
-                    self.room_number = target_room
-                    self.tiled_map.load(self.room_number)
-                    
-                    # Load heightmap for new room
-                    room_map: str = self.tiled_map.data.properties['RoomMap']
-                    self.heightmap = Heightmap()
-                    self.heightmap.load(room_map)
-                    
-                    # Set hero position to warp destination
-                    dest_tile_x: int
-                    dest_tile_y: int
-                    dest_tile_x, dest_tile_y = warp.get_destination(self.room_number, self.heightmap)
-                    
-                    # Get current Z or use ground height at destination
-                    dest_cell: Optional[HeightmapCell] = self.heightmap.get_cell(dest_tile_x, dest_tile_y)
-                    dest_tile_z: int = dest_cell.height
+                    # define warp callback to execute while screen is black
+                    def do_warp():
+                        self.room_number = target_room
+                        self.tiled_map.load(self.room_number)
 
-                    self.hero.set_world_pos(
-                        dest_tile_x * tile_h, dest_tile_y * tile_h, dest_tile_z * tile_h,
-                        self.heightmap.left_offset,
-                        self.heightmap.top_offset,
-                        self.camera_x,
-                        self.camera_y
-                    )
-                    
-                    # Center camera on hero in new room
-                    self.camera_locked = True
-                    self.center_camera_on_hero()
-                    
-                    # Reset previous tile tracking after warp to prevent immediate re-warp
-                    self.prev_hero_tile_x = dest_tile_x
-                    self.prev_hero_tile_y = dest_tile_y
-                    
+                        room_map = self.tiled_map.data.properties['RoomMap']
+                        self.heightmap = Heightmap()
+                        self.heightmap.load(room_map)
+
+                        dest_tile_x, dest_tile_y = warp.get_destination(self.room_number, self.heightmap)
+                        dest_cell: Optional[HeightmapCell] = self.heightmap.get_cell(dest_tile_x, dest_tile_y)
+                        dest_tile_z: int = dest_cell.height if dest_cell else 0
+
+                        self.hero.set_world_pos(
+                            dest_tile_x * tile_h, dest_tile_y * tile_h, dest_tile_z * tile_h,
+                            self.heightmap.left_offset,
+                            self.heightmap.top_offset,
+                            self.camera_x,
+                            self.camera_y
+                        )
+
+                        # Center camera on hero in new room
+                        self.camera_locked = True
+                        self.center_camera_on_hero()
+
+                        # Reset previous tile tracking after warp to prevent immediate re-warp
+                        self.prev_hero_tile_x = dest_tile_x
+                        self.prev_hero_tile_y = dest_tile_y
+
+                    # start fade which will call do_warp at full-black
+                    self.start_fade(do_warp)
                     return True
         
         return False
@@ -297,19 +337,22 @@ class Game:
         tile_h: int = self.tiled_map.data.tileheight
         
         if self.hero.get_world_pos().z == 0 and self.tiled_map.room_properties["WarpFallDestination"] != 65535:
-            print(f"falling ! {self.tiled_map.room_properties["WarpFallDestination"]}")
-            # Load new room
-            self.room_number = self.tiled_map.room_properties["WarpFallDestination"]
-            self.tiled_map.load(self.room_number)
-                    
-            # Load heightmap for new room
-            room_map: str = self.tiled_map.data.properties['RoomMap']
-            self.heightmap = Heightmap()
-            self.heightmap.load(room_map)
+            target = self.tiled_map.room_properties["WarpFallDestination"]
+            print(f"falling ! {target}")
 
-            # Center camera on hero in new room
-            self.camera_locked = True
-            self.center_camera_on_hero()
+            def do_fall_warp():
+                self.room_number = target
+                self.tiled_map.load(self.room_number)
+                room_map = self.tiled_map.data.properties['RoomMap']
+                self.heightmap = Heightmap()
+                self.heightmap.load(room_map)
+                self.camera_locked = True
+                self.center_camera_on_hero()
+
+            self.start_fade(do_fall_warp)
+            return True
+
+        return False
 
     def apply_gravity(self) -> None:
         """Apply gravity to hero using bounding box corners, considering both terrain and entities"""
@@ -482,7 +525,7 @@ class Game:
             new_right_x: int = int((corners[2][0] + HERO_SPEED) // tile_h)
             new_right_y: int = int(corners[2][1] // tile_h)
             new_bottom_x: int = int((corners[1][0] + HERO_SPEED) // tile_h)
-            new_bottom_y: int = int(corners[1][1] // tile_h)
+            new_bottom_y: int = int((corners[1][1] + HERO_SPEED) // tile_h)
             
             if new_right_x < self.heightmap.get_width() and self.can_move_to(
                 next_x, hero_pos.y, [(new_right_x, new_right_y), (new_bottom_x, new_bottom_y)]
@@ -740,6 +783,11 @@ class Game:
         offset_y = (screen_h - scaled_h) // 2
         self.screen.fill((0, 0, 0))
         self.screen.blit(scaled_surface, (offset_x, offset_y))
+
+        # Draw fade overlay if active
+        if self.fade_alpha > 0:
+            scaled_fade = pygame.transform.scale(self.fade_surface, (scaled_w, scaled_h))
+            self.screen.blit(scaled_fade, (offset_x, offset_y))
         
         pygame.display.flip()
 
@@ -773,12 +821,16 @@ class Game:
                 self.handle_hero_movement(keys)
                 self.handle_jump(keys)
                 self.handle_pickup_and_place(keys)
+                # warp/fall checks will now start fades; they return True if a fade initiated
                 self.check_warp_collision()  # Check for warps after movement
                 self.check_fall()
             
             # Update
             self.update_hud()
             self.manager.update(time_delta)
+
+            # Update fade (must be after manager.update so UI changes are visible under fade)
+            self.update_fade(time_delta)
             
             # Render
             self.render()
