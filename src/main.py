@@ -292,6 +292,25 @@ class Game:
         
         return False
     
+    def check_fall(self) -> bool:
+        """Check if hero is falling and handle room transition"""
+        tile_h: int = self.tiled_map.data.tileheight
+        
+        if self.hero.get_world_pos().z == 0 and self.tiled_map.room_properties["WarpFallDestination"] != 65535:
+            print(f"falling ! {self.tiled_map.room_properties["WarpFallDestination"]}")
+            # Load new room
+            self.room_number = self.tiled_map.room_properties["WarpFallDestination"]
+            self.tiled_map.load(self.room_number)
+                    
+            # Load heightmap for new room
+            room_map: str = self.tiled_map.data.properties['RoomMap']
+            self.heightmap = Heightmap()
+            self.heightmap.load(room_map)
+
+            # Center camera on hero in new room
+            self.camera_locked = True
+            self.center_camera_on_hero()
+
     def apply_gravity(self) -> None:
         """Apply gravity to hero using bounding box corners, considering both terrain and entities"""
         tile_h: int = self.tiled_map.data.tileheight
@@ -755,6 +774,7 @@ class Game:
                 self.handle_jump(keys)
                 self.handle_pickup_and_place(keys)
                 self.check_warp_collision()  # Check for warps after movement
+                self.check_fall()
             
             # Update
             self.update_hud()

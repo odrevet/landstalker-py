@@ -76,6 +76,15 @@ class Tiledmap:
         
         self.room_number = room_number
 
+        self.room_properties: Dict[str, Any] = {}
+        if hasattr(self.data, "properties") and self.data.properties:
+            for key, value in self.data.properties.items():
+                self.room_properties[key] = value
+
+        print("Room properties loaded:")
+        for k, v in self.room_properties.items():
+            print(f"  {k}: {v}")
+
         # Load warps as Warp objects
         self.warps = []
         warp_layer = self.data.get_layer_by_name('Warps')
@@ -112,7 +121,7 @@ class Tiledmap:
                 entity = Entity(entity_data)
                 
 
-                entity.x -= 12  # hardcoded offsetss
+                entity.x -= 12  # hardcoded offsets
                 entity.y -= 12
 
                 # Calculate world position
