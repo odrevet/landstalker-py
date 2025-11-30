@@ -42,6 +42,18 @@ python src/main.py -r 595
 python src/main.py -r 240 -x 380 -y 120 -z 16 --debug
 ```
 
+* Test fall warp 
+
+```
+python3 src/main.py -r 159 -x 200 -y 600 -z 32 --debug
+```
+
+* Test entity placement and tilemap drawing
+
+```
+python3 src/main.py -r 153 -x 200 -y 100 -z 48 --debug
+```
+
 # Keys
 
 * Arrowkeys: move hero.
