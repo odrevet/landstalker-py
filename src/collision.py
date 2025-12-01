@@ -283,9 +283,9 @@ def get_entity_in_front_of_hero(hero: Hero,
         print(f"  - solid: {entity.solid}")
         
         # Skip entities that can't be picked up
-        if entity.no_pickup:
-            print(f"  -> SKIPPED (no_pickup is True)")
-            continue
+        #if entity.no_pickup:
+        #    print(f"  -> SKIPPED (no_pickup is True)")
+        #    continue
         
         if not entity.visible:
             print(f"  -> SKIPPED (not visible)")
