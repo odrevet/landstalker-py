@@ -98,7 +98,6 @@ class Game:
 
         self.dialog_textbox.hide()
         self.coord_dialog.hide()
-
         
         # Fade (warp) variables
         self.fade_alpha: int = 0                # 0..255
@@ -118,6 +117,17 @@ class Game:
         self.heightmap: Heightmap = Heightmap()
         self.heightmap.load(room_map)
         
+        tile_h = self.tiled_map.data.tileheight
+        for entity in self.tiled_map.entities:
+            entity.set_world_pos(tile_h)
+            entity.update_screen_pos(
+                self.heightmap.left_offset,
+                self.heightmap.top_offset,
+                self.camera_x,
+                self.camera_y,
+                tile_h
+            )
+
         # Create hero
         self.hero: Hero = Hero(args.x, args.y, args.z)
         
@@ -892,6 +902,18 @@ class Game:
         
         self.manager.draw_ui(self.surface)
         
+        # Draw entities
+        tile_h = self.tiled_map.data.tileheight
+        for entity in self.tiled_map.entities:
+            entity.update_screen_pos(
+                self.heightmap.left_offset,
+                self.heightmap.top_offset,
+                self.camera_x,
+                self.camera_y,
+                tile_h
+            )
+            entity.draw(self.surface)
+
         # Scale with 4:3 aspect ratio
         screen_w, screen_h = self.screen.get_size()
         scale = min(screen_w / DISPLAY_WIDTH, screen_h / DISPLAY_HEIGHT)
