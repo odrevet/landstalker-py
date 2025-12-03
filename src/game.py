@@ -507,120 +507,135 @@ class Game:
         return True
     
     def handle_hero_movement(self, keys: pygame.key.ScancodeWrapper) -> None:
-        """Handle hero movement using bounding box helpers with 3D entity collision"""
-        if keys[pygame.K_LSHIFT]:  # Camera mode
-            return
-        
-        # Re-lock camera when hero moves
-        if any([keys[pygame.K_LEFT], keys[pygame.K_RIGHT], keys[pygame.K_UP], keys[pygame.K_DOWN]]):
-            self.camera_locked = True
-        
-        hero_pos = self.hero.get_world_pos()
-        tile_h: int = self.tiled_map.data.tileheight
-        moved: bool = False
-        
-        # Get current bounding box corners
-        corners = self.hero.get_bbox_corners_world(tile_h)
-        # corners are: (left, bottom, right, top)
-        
-        new_x: float = hero_pos.x
-        new_y: float = hero_pos.y
-        
-        if keys[pygame.K_LEFT]:
-            next_x: float = hero_pos.x - HERO_SPEED
+            """Handle hero movement using bounding box helpers with 3D entity collision"""
+            if keys[pygame.K_LSHIFT]:  # Camera mode
+                return
             
-            # Calculate new corner positions after movement
-            new_top_x: int = int((corners[3][0] - HERO_SPEED) // tile_h)
-            new_top_y: int = int(corners[3][1] // tile_h)
-            new_left_x: int = int((corners[0][0] - HERO_SPEED) // tile_h)
-            new_left_y: int = int(corners[0][1] // tile_h)
+            # Check if any movement key is pressed (for animation)
+            is_moving: bool = keys[pygame.K_LEFT] or keys[pygame.K_RIGHT] or keys[pygame.K_UP] or keys[pygame.K_DOWN]
             
-            if next_x > 0 and self.can_move_to(next_x, hero_pos.y, [
-                (new_top_x, new_top_y), (new_left_x, new_left_y)
-            ]):
-                new_x = next_x
-                moved = True
-        
-        elif keys[pygame.K_RIGHT]:
-            next_x: float = hero_pos.x + HERO_SPEED
+            # Update facing direction based on key presses (even if blocked)
+            if keys[pygame.K_LEFT]:
+                self.hero.facing_direction = "LEFT"
+            elif keys[pygame.K_RIGHT]:
+                self.hero.facing_direction = "RIGHT"
+            elif keys[pygame.K_UP]:
+                self.hero.facing_direction = "UP"
+            elif keys[pygame.K_DOWN]:
+                self.hero.facing_direction = "DOWN"
             
-            # Calculate new corner positions after movement
-            new_right_x: int = int((corners[2][0] + HERO_SPEED) // tile_h)
-            new_right_y: int = int(corners[2][1] // tile_h)
-            new_bottom_x: int = int((corners[1][0] + HERO_SPEED) // tile_h)
-            new_bottom_y: int = int((corners[1][1] + HERO_SPEED) // tile_h)
+            # Re-lock camera when hero moves
+            if is_moving:
+                self.camera_locked = True
             
-            if new_right_x < self.heightmap.get_width() and self.can_move_to(
-                next_x, hero_pos.y, [(new_right_x, new_right_y), (new_bottom_x, new_bottom_y)]
-            ):
-                new_x = next_x
-                moved = True
-        
-        elif keys[pygame.K_UP]:
-            next_y: float = hero_pos.y - HERO_SPEED
+            hero_pos = self.hero.get_world_pos()
+            tile_h: int = self.tiled_map.data.tileheight
+            moved: bool = False
             
-            # Calculate new corner positions after movement
-            new_top_x: int = int(corners[3][0] // tile_h)
-            new_top_y: int = int((corners[3][1] - HERO_SPEED) // tile_h)
-            new_right_x: int = int(corners[2][0] // tile_h)
-            new_right_y: int = int((corners[2][1] - HERO_SPEED) // tile_h)
+            # Get current bounding box corners
+            corners = self.hero.get_bbox_corners_world(tile_h)
+            # corners are: (left, bottom, right, top)
             
-            if next_y > 0 and self.can_move_to(hero_pos.x, next_y, [
-                (new_top_x, new_top_y), (new_right_x, new_right_y)
-            ]):
-                new_y = next_y
-                moved = True
-        
-        elif keys[pygame.K_DOWN]:
-            next_y: float = hero_pos.y + HERO_SPEED
+            new_x: float = hero_pos.x
+            new_y: float = hero_pos.y
             
-            # Calculate new corner positions after movement
-            new_left_x: int = int(corners[0][0] // tile_h)
-            new_left_y: int = int((corners[0][1] + HERO_SPEED) // tile_h)
-            new_bottom_x: int = int(corners[1][0] // tile_h)
-            new_bottom_y: int = int((corners[1][1] + HERO_SPEED) // tile_h)
+            if keys[pygame.K_LEFT]:
+                next_x: float = hero_pos.x - HERO_SPEED
+                
+                # Calculate new corner positions after movement
+                new_top_x: int = int((corners[3][0] - HERO_SPEED) // tile_h)
+                new_top_y: int = int(corners[3][1] // tile_h)
+                new_left_x: int = int((corners[0][0] - HERO_SPEED) // tile_h)
+                new_left_y: int = int(corners[0][1] // tile_h)
+                
+                if next_x > 0 and self.can_move_to(next_x, hero_pos.y, [
+                    (new_top_x, new_top_y), (new_left_x, new_left_y)
+                ]):
+                    new_x = next_x
+                    moved = True
             
-            if new_left_y < self.heightmap.get_height() and self.can_move_to(
-                hero_pos.x, next_y, [(new_left_x, new_left_y), (new_bottom_x, new_bottom_y)]
-            ):
-                new_y = next_y
-                moved = True
-        
-        if moved:
-            # Resolve entity collisions in XY plane
-            # This only handles horizontal collision, not Z-axis (gravity handles that)
-            new_x, new_y = resolve_entity_collision(
-                self.hero,
-                self.tiled_map.entities,
-                new_x,
-                new_y,
-                tile_h,
-                self.heightmap.left_offset,
-                self.heightmap.top_offset,
-                self.camera_x,
-                self.camera_y
-            )
+            elif keys[pygame.K_RIGHT]:
+                next_x: float = hero_pos.x + HERO_SPEED
+                
+                # Calculate new corner positions after movement
+                new_right_x: int = int((corners[2][0] + HERO_SPEED) // tile_h)
+                new_right_y: int = int(corners[2][1] // tile_h)
+                new_bottom_x: int = int((corners[1][0] + HERO_SPEED) // tile_h)
+                new_bottom_y: int = int((corners[1][1] + HERO_SPEED) // tile_h)
+                
+                if new_right_x < self.heightmap.get_width() and self.can_move_to(
+                    next_x, hero_pos.y, [(new_right_x, new_right_y), (new_bottom_x, new_bottom_y)]
+                ):
+                    new_x = next_x
+                    moved = True
             
-            self.hero.set_world_pos(
-                new_x, new_y, hero_pos.z,
-                self.heightmap.left_offset,
-                self.heightmap.top_offset,
-                self.camera_x,
-                self.camera_y
-            )
+            elif keys[pygame.K_UP]:
+                next_y: float = hero_pos.y - HERO_SPEED
+                
+                # Calculate new corner positions after movement
+                new_top_x: int = int(corners[3][0] // tile_h)
+                new_top_y: int = int((corners[3][1] - HERO_SPEED) // tile_h)
+                new_right_x: int = int(corners[2][0] // tile_h)
+                new_right_y: int = int((corners[2][1] - HERO_SPEED) // tile_h)
+                
+                if next_y > 0 and self.can_move_to(hero_pos.x, next_y, [
+                    (new_top_x, new_top_y), (new_right_x, new_right_y)
+                ]):
+                    new_y = next_y
+                    moved = True
             
-            # Update grabbed entity position if carrying something
-            if self.hero.is_grabbing:
-                self.hero.update_grabbed_entity_position(
+            elif keys[pygame.K_DOWN]:
+                next_y: float = hero_pos.y + HERO_SPEED
+                
+                # Calculate new corner positions after movement
+                new_left_x: int = int(corners[0][0] // tile_h)
+                new_left_y: int = int((corners[0][1] + HERO_SPEED) // tile_h)
+                new_bottom_x: int = int(corners[1][0] // tile_h)
+                new_bottom_y: int = int((corners[1][1] + HERO_SPEED) // tile_h)
+                
+                if new_left_y < self.heightmap.get_height() and self.can_move_to(
+                    hero_pos.x, next_y, [(new_left_x, new_left_y), (new_bottom_x, new_bottom_y)]
+                ):
+                    new_y = next_y
+                    moved = True
+            
+            if moved:
+                # Resolve entity collisions in XY plane
+                # This only handles horizontal collision, not Z-axis (gravity handles that)
+                new_x, new_y = resolve_entity_collision(
+                    self.hero,
+                    self.tiled_map.entities,
+                    new_x,
+                    new_y,
+                    tile_h,
                     self.heightmap.left_offset,
                     self.heightmap.top_offset,
                     self.camera_x,
-                    self.camera_y,
-                    tile_h
+                    self.camera_y
                 )
+                
+                self.hero.set_world_pos(
+                    new_x, new_y, hero_pos.z,
+                    self.heightmap.left_offset,
+                    self.heightmap.top_offset,
+                    self.camera_x,
+                    self.camera_y
+                )
+                
+                # Update grabbed entity position if carrying something
+                if self.hero.is_grabbing:
+                    self.hero.update_grabbed_entity_position(
+                        self.heightmap.left_offset,
+                        self.heightmap.top_offset,
+                        self.camera_x,
+                        self.camera_y,
+                        tile_h
+                    )
+                
+                if self.camera_locked:
+                    self.center_camera_on_hero()
             
-            if self.camera_locked:
-                self.center_camera_on_hero()
+            self.hero.update_animation(is_moving)
     
     def handle_jump(self, keys: pygame.key.ScancodeWrapper) -> None:
         """Handle hero jumping"""
