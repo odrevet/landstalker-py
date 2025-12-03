@@ -62,11 +62,20 @@ class Hero(pygame.sprite.Sprite):
             self.animations["walk_back"] = self._extract_frames(walk_back_sheet, 32, 48, 8)
             self.animations["walk_front"] = self._extract_frames(walk_front_sheet, 32, 48, 8)
             
+            # Jump animations (64x48 - 2 frames of 32x48 each)
+            jump_back_sheet = pygame.image.load('data/sprites/SpriteGfx000Anim008.png').convert_alpha()
+            jump_front_sheet = pygame.image.load('data/sprites/SpriteGfx000Anim009.png').convert_alpha()
+            
+            self.animations["jump_back"] = self._extract_frames(jump_back_sheet, 32, 48, 2)
+            self.animations["jump_front"] = self._extract_frames(jump_front_sheet, 32, 48, 2)
+            
             # For left/right, we can use back animation (or add side animations later)
             self.animations["idle_left"] = [idle_back]
             self.animations["idle_right"] = [idle_back]
             self.animations["walk_left"] = self.animations["walk_back"]
             self.animations["walk_right"] = self.animations["walk_front"]
+            self.animations["jump_left"] = self.animations["jump_back"]
+            self.animations["jump_right"] = self.animations["jump_front"]
             
         except (pygame.error, FileNotFoundError) as e:
             print(f"Warning: Could not load animation sprites: {e}")
@@ -77,10 +86,14 @@ class Hero(pygame.sprite.Sprite):
             self.animations["idle_back"] = [placeholder]
             self.animations["walk_front"] = [placeholder] * 8
             self.animations["walk_back"] = [placeholder] * 8
+            self.animations["jump_front"] = [placeholder] * 2
+            self.animations["jump_back"] = [placeholder] * 2
             self.animations["idle_left"] = [placeholder]
             self.animations["idle_right"] = [placeholder]
             self.animations["walk_left"] = [placeholder] * 8
             self.animations["walk_right"] = [placeholder] * 8
+            self.animations["jump_left"] = [placeholder] * 2
+            self.animations["jump_right"] = [placeholder] * 2
     
     def _extract_frames(self, spritesheet: pygame.Surface, frame_width: int, 
                        frame_height: int, num_frames: int) -> List[pygame.Surface]:
@@ -111,24 +124,29 @@ class Hero(pygame.sprite.Sprite):
         self.is_moving = is_moving
         
         # Determine which animation to play
-        if is_moving:
+        # Priority: jumping > moving > idle
+        if self.is_jumping:
+            # Use jump animations when jumping
+            if self.facing_direction == "UP":
+                new_animation = "jump_back"
+            elif self.facing_direction == "DOWN" or self.facing_direction == "RIGHT":
+                new_animation = "jump_front"
+            elif self.facing_direction == "LEFT":
+                new_animation = "jump_left"
+        elif is_moving:
             if self.facing_direction == "UP":
                 new_animation = "walk_back"
-            elif self.facing_direction == "DOWN":
+            elif self.facing_direction == "DOWN" or self.facing_direction == "RIGHT":
                 new_animation = "walk_front"
             elif self.facing_direction == "LEFT":
                 new_animation = "walk_left"
-            else:  # RIGHT
-                new_animation = "walk_right"
         else:
             if self.facing_direction == "UP":
                 new_animation = "idle_back"
-            elif self.facing_direction == "DOWN":
+            elif self.facing_direction == "DOWN" or self.facing_direction == "RIGHT":
                 new_animation = "idle_front"
             elif self.facing_direction == "LEFT":
                 new_animation = "idle_left"
-            else:  # RIGHT
-                new_animation = "idle_right"
         
         # Reset frame if animation changed
         if new_animation != self.current_animation:
@@ -137,7 +155,17 @@ class Hero(pygame.sprite.Sprite):
             self.animation_timer = 0.0
         
         # Update animation frame
-        if is_moving or len(self.animations[self.current_animation]) == 1:
+        if self.is_jumping:
+            # For jump: frame 0 = ascending, frame 1 = descending
+            # Use current_jump to determine which frame
+            # Assuming HERO_MAX_JUMP is available (you may need to pass it or import it)
+            jump_peak = 12  # Half of HERO_MAX_JUMP (24 / 2)
+            if self.current_jump < jump_peak:
+                self.current_frame = 0  # Ascending - first frame
+            else:
+                self.current_frame = 1  # Descending - second frame
+        elif is_moving or len(self.animations[self.current_animation]) == 1:
+            # For walk animations, use timer
             self.animation_timer += self.animation_speed
             if self.animation_timer >= 1.0:
                 self.animation_timer = 0.0
@@ -146,7 +174,7 @@ class Hero(pygame.sprite.Sprite):
         # Update current image
         base_image = self.animations[self.current_animation][self.current_frame]
         
-        # Mirror image
+        # Mirror image when facing left or right
         if self.facing_direction == "LEFT" or self.facing_direction == "RIGHT":
             self.image = pygame.transform.flip(base_image, True, False)
         else:
