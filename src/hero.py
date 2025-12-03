@@ -66,7 +66,7 @@ class Hero(pygame.sprite.Sprite):
             self.animations["idle_left"] = [idle_back]
             self.animations["idle_right"] = [idle_back]
             self.animations["walk_left"] = self.animations["walk_back"]
-            self.animations["walk_right"] = self.animations["walk_back"]
+            self.animations["walk_right"] = self.animations["walk_front"]
             
         except (pygame.error, FileNotFoundError) as e:
             print(f"Warning: Could not load animation sprites: {e}")
@@ -144,7 +144,33 @@ class Hero(pygame.sprite.Sprite):
                 self.current_frame = (self.current_frame + 1) % len(self.animations[self.current_animation])
         
         # Update current image
-        self.image = self.animations[self.current_animation][self.current_frame]
+        base_image = self.animations[self.current_animation][self.current_frame]
+        
+        # Mirror image
+        if self.facing_direction == "LEFT" or self.facing_direction == "RIGHT":
+            self.image = pygame.transform.flip(base_image, True, False)
+        else:
+            self.image = base_image
+    
+    def update_facing_direction(self, dx: float, dy: float) -> None:
+        """Update hero's facing direction based on movement delta
+        
+        Args:
+            dx: Change in X position
+            dy: Change in Y position
+        """
+        # Update facing based on actual movement direction
+        # Priority: favor the axis with larger movement
+        if abs(dx) > abs(dy):
+            if dx < 0:
+                self.facing_direction = "LEFT"
+            elif dx > 0:
+                self.facing_direction = "RIGHT"
+        else:
+            if dy < 0:
+                self.facing_direction = "UP"
+            elif dy > 0:
+                self.facing_direction = "DOWN"
     
     def get_world_pos(self) -> Vector3:
         """Get the hero's world position"""
@@ -303,19 +329,3 @@ class Hero(pygame.sprite.Sprite):
         # Update entity's bounding box
         if self.grabbed_entity.bbox:
             self.grabbed_entity.bbox.update_position(self.grabbed_entity.world_pos)
-
-    def update_facing_direction(self, keys) -> None:
-        """Update hero's facing direction based on movement input
-        
-        Args:
-            keys: Pygame key state
-        """
-        # Priority: most recent key press determines facing
-        if keys[pygame.K_LEFT]:
-            self.facing_direction = "LEFT"
-        elif keys[pygame.K_RIGHT]:
-            self.facing_direction = "RIGHT"
-        elif keys[pygame.K_UP]:
-            self.facing_direction = "UP"
-        elif keys[pygame.K_DOWN]:
-            self.facing_direction = "DOWN"
