@@ -42,16 +42,22 @@ python src/main.py -r 595
 python src/main.py -r 240 -x 380 -y 120 -z 16 --debug
 ```
 
-* Test fall warp 
+* Before falling to raft: Test fall warp and entity script
 
 ```
 python3 src/main.py -r 159 -x 200 -y 600 -z 32 --debug
 ```
 
-* Test entity placement and tilemap drawing
+* Test entity placement, chests, tilemap culling
 
 ```
 python3 src/main.py -r 153 -x 200 -y 100 -z 48 --debug
+```
+
+* Test crate
+
+```
+python3 src/main.py -r 157 -x 400 -y 300 -z 0 --debug
 ```
 
 # Keys
