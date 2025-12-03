@@ -76,7 +76,7 @@ class Entity:
     
     def _load_sprite(self) -> None:
         """Load sprite for this entity class (uses cache to avoid reloading)"""
-        sprite_file = self._sprite_map.get(self.entity_class)
+        sprite_file = self._sprite_map.get(self.name)
         
         if sprite_file:
             # Check if already in cache
