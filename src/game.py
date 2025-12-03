@@ -680,6 +680,52 @@ class Game:
             if not self.is_key_just_pressed(pygame.K_a, keys):
                 return
             
+            # handle pickup/place
+            if self.hero.is_grabbing:
+                # Try to place the entity in front of hero
+                hero_pos = self.hero.get_world_pos()
+                
+                # Get position in front of hero
+                place_x, place_y = get_position_in_front_of_hero(self.hero, tile_h)
+                
+                # Get ground Z at that position
+                place_tile_x = int(place_x // tile_h)
+                place_tile_y = int(place_y // tile_h)
+                
+                if (place_tile_x >= 0 and place_tile_y >= 0 and
+                    place_tile_x < self.heightmap.get_width() and
+                    place_tile_y < self.heightmap.get_height()):
+                    
+                    cell = self.heightmap.get_cell(place_tile_x, place_tile_y)
+                    if cell:
+                        place_z = cell.height * tile_h
+                        
+                        # Check if entity can be placed there
+                        if can_place_entity_at_position(
+                            self.hero.grabbed_entity,
+                            place_x,
+                            place_y,
+                            place_z,
+                            self.tiled_map.entities,
+                            self.heightmap,
+                            tile_h
+                        ):
+                            # Place the entity
+                            self.hero.grabbed_entity.world_pos = Vector3(place_x, place_y, place_z)
+                            if self.hero.grabbed_entity.bbox:
+                                self.hero.grabbed_entity.bbox.update_position(self.hero.grabbed_entity.world_pos)
+                            
+                            print(f"Placed entity: {self.hero.grabbed_entity.name} at ({place_tile_x}, {place_tile_y})")
+                            
+                            # Release the entity
+                            self.hero.release_entity()
+                        else:
+                            print("Cannot place entity here - position blocked")
+                    else:
+                        print("Cannot place entity here - invalid terrain")
+                else:
+                    print("Cannot place entity here - out of bounds")
+
             # Check for entity in front of hero
             entity = get_entity_in_front_of_hero(
                 self.hero,
@@ -692,9 +738,7 @@ class Game:
                 if entity.has_dialogue == True:
                     self.show_dialog(entity.dialogue)
                     return
-                
-                # handle pickup/place
-                if not self.hero.is_grabbing:
+                else:
                     # Try to grab an entity
                     self.hero.grab_entity(entity)
                     
@@ -708,51 +752,6 @@ class Game:
                     )
                     
                     print(f"Grabbed entity: {entity.name}")
-                else:
-                    # Try to place the entity in front of hero
-                    hero_pos = self.hero.get_world_pos()
-                    
-                    # Get position in front of hero
-                    place_x, place_y = get_position_in_front_of_hero(self.hero, tile_h)
-                    
-                    # Get ground Z at that position
-                    place_tile_x = int(place_x // tile_h)
-                    place_tile_y = int(place_y // tile_h)
-                    
-                    if (place_tile_x >= 0 and place_tile_y >= 0 and
-                        place_tile_x < self.heightmap.get_width() and
-                        place_tile_y < self.heightmap.get_height()):
-                        
-                        cell = self.heightmap.get_cell(place_tile_x, place_tile_y)
-                        if cell:
-                            place_z = cell.height * tile_h
-                            
-                            # Check if entity can be placed there
-                            if can_place_entity_at_position(
-                                self.hero.grabbed_entity,
-                                place_x,
-                                place_y,
-                                place_z,
-                                self.tiled_map.entities,
-                                self.heightmap,
-                                tile_h
-                            ):
-                                # Place the entity
-                                self.hero.grabbed_entity.world_pos = Vector3(place_x, place_y, place_z)
-                                if self.hero.grabbed_entity.bbox:
-                                    self.hero.grabbed_entity.bbox.update_position(self.hero.grabbed_entity.world_pos)
-                                
-                                print(f"Placed entity: {self.hero.grabbed_entity.name} at ({place_tile_x}, {place_tile_y})")
-                                
-                                # Release the entity
-                                self.hero.release_entity()
-                            else:
-                                print("Cannot place entity here - position blocked")
-                        else:
-                            print("Cannot place entity here - invalid terrain")
-                    else:
-                        print("Cannot place entity here - out of bounds")
-
     def handle_debug_toggles(self, keys: pygame.key.ScancodeWrapper) -> None:
         """Handle debug flag toggles"""
         if self.debug_mode:

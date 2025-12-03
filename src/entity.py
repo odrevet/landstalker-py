@@ -62,8 +62,6 @@ class Entity:
             tile_h: Tile height in pixels
         """
 
-        print(f"{self.x} {self.y} {self.z}")
-
         self.world_pos = Vector3(
             self.x * tile_h,
             self.y * tile_h,
