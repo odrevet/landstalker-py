@@ -13,7 +13,7 @@ from tiledmap import Tiledmap
 from heightmap import Heightmap, HeightmapCell
 from debug import draw_hero_boundbox, draw_heightmap, draw_warps, draw_entities_boundboxes
 from collision import (resolve_entity_collision, can_move_to_position, get_entity_top_at_position,
-                      get_entity_in_front_of_hero, can_place_entity_at_position, get_position_in_front_of_hero)
+                      get_entity_in_front_of_hero, can_place_entity_at_position, get_position_in_front_of_hero, get_touching_entities)
 
 # Constants
 DISPLAY_HEIGHT: int = 224
@@ -625,8 +625,8 @@ class Game:
                 )
 
                 # Then you can handle touched entities:
-                for entity in touched_entities:
-                    print(f"Touched entity: {entity.name}")
+                #for entity in touched_entities:
+                #    print(f"Touched entity: {entity.name}")
                 
                 self.hero.set_world_pos(
                     new_x, new_y, hero_pos.z,
@@ -1010,6 +1010,17 @@ class Game:
                 if not keys[pygame.K_LSHIFT]:
                     self.apply_gravity()
                 self.handle_hero_movement(keys)
+
+                # Check for entities touching hero (for triggers, enemies, etc.)
+                touching = get_touching_entities(
+                    self.hero,
+                    self.tiled_map.entities,
+                    16
+                )
+
+                for entity in touching:
+                    print(f"-> {entity}")
+
                 self.handle_jump(keys)
                 self.check_action(keys)
                 # warp/fall checks will now start fades; they return True if a fade initiated
