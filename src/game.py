@@ -926,13 +926,17 @@ class Game:
         # Add all entities with their sort key
         for entity in self.tiled_map.entities:
             if entity.world_pos is not None:
-                # Sort key: (Y position + Z position) - objects further back/higher up draw first
-                sort_key = entity.world_pos.y + entity.world_pos.z
+                # Sort key: Y + (Z + height)
+                # The top of the object determines draw order in isometric view
+                entity_height = entity.HEIGHT * tile_h  # Entity height in world units
+                sort_key = entity.world_pos.y + entity.world_pos.z + entity_height
                 drawable_objects.append((sort_key, entity))
         
         # Add hero with their sort key
         if self.hero.get_world_pos() is not None:
-            sort_key = self.hero.get_world_pos().y + self.hero.get_world_pos().z
+            # Hero is 2 tiles tall, so use their full height for sorting
+            hero_height = self.hero.HEIGHT * tile_h  # Hero height in world units (2 tiles)
+            sort_key = self.hero.get_world_pos().y + self.hero.get_world_pos().z + hero_height
             drawable_objects.append((sort_key, self.hero))
         
         # Sort by Y+Z position (ascending order - back to front)
