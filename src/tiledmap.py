@@ -141,7 +141,7 @@ class Tiledmap:
                 if tile.has_priority == False:
                     tile.draw(surface, blockset.screen_pos, self.foreground_layer.data.offsetx, camera_x, camera_y)
 
-        hero.draw(surface)
+        #hero.draw(surface)
         
         for blockset in self.background_layer.blocksets:
             for tile in blockset.tiles:

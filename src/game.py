@@ -894,15 +894,22 @@ class Game:
         
         # Draw map and debug
         self.tiled_map.draw(self.surface, self.camera_x, self.camera_y, self.hero)
+        
         if self.debug_mode and self.is_debug_draw_enabled:
-            draw_heightmap(self.surface, self.heightmap, self.tiled_map.data.tileheight, self.camera_x, self.camera_y)
-            draw_hero_boundbox(self.hero, self.surface, self.tiled_map.data.tileheight, self.camera_x, self.camera_y, self.heightmap.left_offset, self.heightmap.top_offset)
-            draw_entities_boundboxes(self.tiled_map.entities, self.surface, self.tiled_map.data.tileheight, self.camera_x, self.camera_y, self.heightmap.left_offset, self.heightmap.top_offset)
-            draw_warps(self.surface, self.tiled_map.warps, self.heightmap, self.tiled_map.data.tileheight, self.camera_x, self.camera_y, self.room_number)
+            draw_heightmap(self.surface, self.heightmap, self.tiled_map.data.tileheight, 
+                        self.camera_x, self.camera_y)
+            draw_hero_boundbox(self.hero, self.surface, self.tiled_map.data.tileheight, 
+                            self.camera_x, self.camera_y, self.heightmap.left_offset, 
+                            self.heightmap.top_offset)
+            draw_entities_boundboxes(self.tiled_map.entities, self.surface, 
+                                    self.tiled_map.data.tileheight, self.camera_x, 
+                                    self.camera_y, self.heightmap.left_offset, 
+                                    self.heightmap.top_offset)
+            draw_warps(self.surface, self.tiled_map.warps, self.heightmap, 
+                    self.tiled_map.data.tileheight, self.camera_x, self.camera_y, 
+                    self.room_number)
         
-        self.manager.draw_ui(self.surface)
-        
-        # Draw entities
+        # Prepare entities for drawing (update their screen positions)
         tile_h = self.tiled_map.data.tileheight
         for entity in self.tiled_map.entities:
             entity.update_screen_pos(
@@ -912,7 +919,31 @@ class Game:
                 self.camera_y,
                 tile_h
             )
-            entity.draw(self.surface)
+        
+        # Create a list of all drawable objects (entities + hero)
+        drawable_objects = []
+        
+        # Add all entities with their sort key
+        for entity in self.tiled_map.entities:
+            if entity.world_pos is not None:
+                # Sort key: (Y position + Z position) - objects further back/higher up draw first
+                sort_key = entity.world_pos.y + entity.world_pos.z
+                drawable_objects.append((sort_key, entity))
+        
+        # Add hero with their sort key
+        if self.hero.get_world_pos() is not None:
+            sort_key = self.hero.get_world_pos().y + self.hero.get_world_pos().z
+            drawable_objects.append((sort_key, self.hero))
+        
+        # Sort by Y+Z position (ascending order - back to front)
+        drawable_objects.sort(key=lambda x: x[0])
+        
+        # Draw all objects in sorted order
+        for _, obj in drawable_objects:
+            obj.draw(self.surface)
+        
+        # Draw UI on top of everything
+        self.manager.draw_ui(self.surface)
 
         # Scale with 4:3 aspect ratio
         screen_w, screen_h = self.screen.get_size()
