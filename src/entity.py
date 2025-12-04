@@ -11,10 +11,10 @@ class Entity:
     # Class-level sprite cache - shared across all instances
     _sprite_cache: ClassVar[Dict[str, pygame.Surface]] = {}
     
-    # Sprite mapping: entity_class -> sprite filename
-    _sprite_map: ClassVar[Dict[str, str]] = {
-        'Crate': 'data/sprites/SpriteGfx091Anim000.png',
-        'Chest': 'data/sprites/SpriteGfx036Anim000.png',
+    # Sprite mapping: entity_class -> (sprite filename, frame_width, frame_count)
+    _sprite_map: ClassVar[Dict[str, Tuple[str, int, int]]] = {
+        'Crate': ('data/sprites/SpriteGfx091Anim000.png', 32, 1),
+        'Chest': ('data/sprites/SpriteGfx036Anim000.png', 32, 5),  # 5 frames at 32px each
     }
     
     def __init__(self, data: Dict[str, Any]) -> None:
@@ -48,8 +48,16 @@ class Entity:
         self.orientation: str = data.get('Orientation', 'NE')
         
         # Sprite/animation
-        self.image: Optional[pygame.Surface] = None
+        self.sprite_sheet: Optional[pygame.Surface] = None  # Full sprite sheet
+        self.frames: List[pygame.Surface] = []  # Individual frames
+        self.frame_width: int = 32  # Width of each frame
+        self.frame_count: int = 1  # Number of frames
         self.current_frame: int = 0
+        self.image: Optional[pygame.Surface] = None  # Current frame to display
+        
+        # Animation timing
+        self.animation_speed: float = 0.1  # Seconds per frame
+        self.animation_timer: float = 0.0
         
         # Behavior properties
         self.behaviour: int = data.get('Behaviour', 0)
@@ -75,25 +83,33 @@ class Entity:
         self._load_sprite()
     
     def _load_sprite(self) -> None:
-        """Load sprite for this entity class (uses cache to avoid reloading)"""
-        sprite_file = self._sprite_map.get(self.name)
+        """Load sprite for this entity class and extract individual frames"""
+        sprite_info = self._sprite_map.get(self.name)
         
-        if sprite_file:
+        if sprite_info:
+            sprite_file, frame_width, frame_count = sprite_info
+            self.frame_width = frame_width
+            self.frame_count = frame_count
+            
             # Check if already in cache
             if sprite_file not in Entity._sprite_cache:
                 try:
                     loaded_sprite = pygame.image.load(sprite_file).convert_alpha()
                     Entity._sprite_cache[sprite_file] = loaded_sprite
-                    print(f"Loaded sprite for {self.entity_class}: {sprite_file}")
+                    print(f"Loaded sprite sheet for {self.name}: {sprite_file}")
                 except (pygame.error, FileNotFoundError) as e:
                     print(f"Warning: Could not load sprite {sprite_file}: {e}")
                     # Create placeholder
-                    placeholder = pygame.Surface((32, 48), pygame.SRCALPHA)
+                    placeholder = pygame.Surface((frame_width, 48), pygame.SRCALPHA)
                     placeholder.fill((0, 255, 255, 128))  # Cyan placeholder
                     Entity._sprite_cache[sprite_file] = placeholder
             
-            # Use cached sprite
-            self.image = Entity._sprite_cache[sprite_file]
+            # Get the sprite sheet from cache
+            self.sprite_sheet = Entity._sprite_cache[sprite_file]
+            
+            # Extract individual frames from the sprite sheet
+            self._extract_frames()
+            
         else:
             # No sprite mapping for this entity class - create placeholder
             cache_key = f"placeholder_{self.entity_class}"
@@ -101,7 +117,53 @@ class Entity:
                 placeholder = pygame.Surface((32, 48), pygame.SRCALPHA)
                 placeholder.fill((255, 128, 0, 128))  # Orange placeholder for unknown
                 Entity._sprite_cache[cache_key] = placeholder
-            self.image = Entity._sprite_cache[cache_key]
+            
+            self.sprite_sheet = Entity._sprite_cache[cache_key]
+            self.frames = [self.sprite_sheet]
+            self.image = self.frames[0]
+    
+    def _extract_frames(self) -> None:
+        """Extract individual frames from the sprite sheet"""
+        if self.sprite_sheet is None:
+            return
+        
+        sprite_height = self.sprite_sheet.get_height()
+        
+        # Extract each frame
+        for i in range(self.frame_count):
+            x = i * self.frame_width
+            frame = self.sprite_sheet.subsurface(
+                pygame.Rect(x, 0, self.frame_width, sprite_height)
+            )
+            self.frames.append(frame)
+        
+        # Set initial frame
+        if self.frames:
+            self.image = self.frames[0]
+    
+    def update(self, dt: float) -> None:
+        """Update entity animation
+        
+        Args:
+            dt: Delta time in seconds
+        """
+        if len(self.frames) > 1:
+            self.animation_timer += dt
+            
+            if self.animation_timer >= self.animation_speed:
+                self.animation_timer = 0.0
+                self.current_frame = (self.current_frame + 1) % len(self.frames)
+                self.image = self.frames[self.current_frame]
+    
+    def set_frame(self, frame_index: int) -> None:
+        """Set a specific frame manually
+        
+        Args:
+            frame_index: Index of the frame to display
+        """
+        if 0 <= frame_index < len(self.frames):
+            self.current_frame = frame_index
+            self.image = self.frames[frame_index]
     
     def set_world_pos(self, tile_h: int) -> None:
         """Calculate world position from tile coordinates
