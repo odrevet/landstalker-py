@@ -14,7 +14,15 @@ class Entity:
     # Sprite mapping: entity_class -> (sprite filename, frame_width, frame_count)
     _sprite_map: ClassVar[Dict[str, Tuple[str, int, int]]] = {
         'Crate': ('data/sprites/SpriteGfx091Anim000.png', 32, 1),
-        'Chest': ('data/sprites/SpriteGfx036Anim000.png', 32, 5),  # 5 frames at 32px each
+        'Chest': ('data/sprites/SpriteGfx036Anim000.png', 32, 5),
+        'Raft': ('data/sprites/SpriteGfx092Anim000.png', 64, 1),
+    }
+    
+    # Physical properties mapping: entity_name -> (size, height, volume)
+    _physical_properties: ClassVar[Dict[str, Tuple[float, float, float]]] = {
+        'Raft': (2.0, 0.5, 2.5),
+        'Crate': (1.0, 1.0, 1.0),
+        'Chest': (1.0, 1.0, 1.0),
     }
     
     def __init__(self, data: Dict[str, Any]) -> None:
@@ -37,8 +45,14 @@ class Entity:
         self.world_pos: Optional[Vector3] = None
         self._screen_pos: Vector2 = Vector2()
         
-        # Height in tiles (entities are 1 tile tall)
-        self.HEIGHT: int = 1
+        # Physical properties (size in tiles, height in tiles, volume)
+        physical_props = self._physical_properties.get(self.name, (1.0, 1.0, 1.0))
+        self.size: float = physical_props[0]  # Width and length in tiles
+        self.height: float = physical_props[1]  # Height in tiles
+        self.volume: float = physical_props[2]  # Volume
+        
+        # Height in tiles (entities are 1 tile tall by default, but can be overridden)
+        self.HEIGHT: int = int(self.height)
         
         # Bounding box for collision detection (initialized after world_pos is set)
         self.bbox: Optional[BoundingBox] = None
@@ -177,7 +191,8 @@ class Entity:
             self.z * tile_h
         )
         # Initialize bounding box after world position is set
-        self.bbox = BoundingBox(self.world_pos, self.HEIGHT)
+        # Use the entity's size property for the bounding box
+        self.bbox = BoundingBox(self.world_pos, self.height, self.size)
     
     def update_screen_pos(self, heightmap_left_offset: int, heightmap_top_offset: int,
                          camera_x: float, camera_y: float, tile_h: int) -> None:
@@ -276,6 +291,12 @@ class Entity:
         """Check if entity is an NPC"""
         return self.entity_class == 'NPC'
     
+    def is_raft(self) -> bool:
+        """Check if entity is a raft"""
+        return self.name == 'Raft'
+    
     def __repr__(self) -> str:
         return (f"Entity(name='{self.name}', class='{self.entity_class}', "
-                f"pos=({self.x}, {self.y}, {self.z}), type={self.type}),behaviour={self.behaviour}")
+                f"pos=({self.x}, {self.y}, {self.z}), type={self.type}, "
+                f"size={self.size}, height={self.height}, volume={self.volume}, "
+                f"behaviour={self.behaviour}, solid={self.solid})")

@@ -192,9 +192,15 @@ def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y,
         tile_y = bbox.world_pos.y / tile_height
         tile_z = bbox.world_pos.z / tile_height
 
-        coord_text = f"X: {bbox.world_pos.x:.1f} ({tile_x:.1f})\n Y: {bbox.world_pos.y:.1f} ({tile_y:.1f})\n Z: {bbox.world_pos.z:.1f} ({tile_z:.1f})"
+        # Show size and height properties
+        props_text = f"size:{bbox.size_in_tiles:.1f} h:{bbox.height_in_tiles:.1f}"
+        props_surf = font.render(props_text, True, color)
+        screen.blit(props_surf, (label_x, label_y + 12))
+        
+        # Show tile coordinates
+        coord_text = f"({tile_x:.1f},{tile_y:.1f},{tile_z:.1f})"
         coord_surf = font.render(coord_text, True, color)
-        screen.blit(coord_surf, (label_x, label_y + 12))
+        screen.blit(coord_surf, (label_x, label_y + 24))
 
 
 # -------------------------------------------------------------
@@ -214,20 +220,10 @@ def draw_entity_boundbox(entity, screen, tile_height, camera_x, camera_y, left_o
     if entity.bbox is None:
         return
     
-    label = f"{entity.name} (Entity)"
-
-    # Choose color based on entity type
-    if entity.is_crate():
-        color = (255, 250, 50)
-    elif entity.is_chest():
-        color = (25, 25, 50)
-    elif entity.is_npc():
-        color = (50, 200, 255)
-    else:
-        color = (200, 150, 255)
-    
+    color = (200, 250, 255)
     draw_boundbox(entity.bbox, screen, tile_height, camera_x, camera_y, 
-                  left_offset, top_offset, color=color, label=label)
+                  left_offset, top_offset, color=color, label=entity.name
+)
 
 
 # -------------------------------------------------------------

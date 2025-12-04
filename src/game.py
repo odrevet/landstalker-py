@@ -54,7 +54,6 @@ class Game:
         self.compressed_strings: list[str] = self.load_compressed_strings("data/compressed_strings.txt")
 
         # Debug flags
-        self.is_debug_draw_enabled: bool = True
         self.is_height_map_displayed: bool = False
         self.is_boundbox_displayed: bool = False
         self.is_warps_displayed: bool = False
@@ -102,7 +101,7 @@ class Game:
         # Fade (warp) variables
         self.fade_alpha: int = 0                # 0..255
         self.fade_mode: Optional[str] = None    # "out", "in", or None
-        self.fade_speed: float = 600.0          # alpha units per second (adjust to taste)
+        self.fade_speed: float = 400.0          # alpha units per second
         self.fade_callback: Optional[Callable[[], None]] = None
         self.fade_surface: pygame.Surface = pygame.Surface((DISPLAY_WIDTH, DISPLAY_HEIGHT))
         self.fade_surface.fill((0, 0, 0))
@@ -769,8 +768,14 @@ class Game:
     def handle_debug_toggles(self, keys: pygame.key.ScancodeWrapper) -> None:
         """Handle debug flag toggles"""
         if self.debug_mode:
-            if self.is_key_just_pressed(pygame.K_d, keys):
-                self.is_debug_draw_enabled = not self.is_debug_draw_enabled
+            if self.is_key_just_pressed(pygame.K_F1, keys):
+                self.is_boundbox_displayed = not self.is_boundbox_displayed
+
+            if self.is_key_just_pressed(pygame.K_F2, keys):
+                self.is_height_map_displayed = not self.is_height_map_displayed
+
+            if self.is_key_just_pressed(pygame.K_F3, keys):
+                self.is_warps_displayed = not self.is_warps_displayed
     
     def handle_room_change(self, keys: pygame.key.ScancodeWrapper) -> None:
         """Handle room changing with CTRL + arrow keys"""
@@ -898,21 +903,7 @@ class Game:
         
         # Draw map and debug
         self.tiled_map.draw(self.surface, self.camera_x, self.camera_y, self.hero)
-        
-        if self.debug_mode and self.is_debug_draw_enabled:
-            draw_heightmap(self.surface, self.heightmap, self.tiled_map.data.tileheight, 
-                        self.camera_x, self.camera_y)
-            draw_hero_boundbox(self.hero, self.surface, self.tiled_map.data.tileheight, 
-                            self.camera_x, self.camera_y, self.heightmap.left_offset, 
-                            self.heightmap.top_offset)
-            draw_entities_boundboxes(self.tiled_map.entities, self.surface, 
-                                    self.tiled_map.data.tileheight, self.camera_x, 
-                                    self.camera_y, self.heightmap.left_offset, 
-                                    self.heightmap.top_offset)
-            draw_warps(self.surface, self.tiled_map.warps, self.heightmap, 
-                    self.tiled_map.data.tileheight, self.camera_x, self.camera_y, 
-                    self.room_number)
-        
+                
         # Prepare entities for drawing (update their screen positions)
         tile_h = self.tiled_map.data.tileheight
         for entity in self.tiled_map.entities:
@@ -950,6 +941,26 @@ class Game:
         for _, obj in drawable_objects:
             obj.draw(self.surface)
         
+
+        if self.debug_mode:
+            if self.is_height_map_displayed:
+                draw_heightmap(self.surface, self.heightmap, self.tiled_map.data.tileheight, 
+                            self.camera_x, self.camera_y)
+
+            if self.is_boundbox_displayed:
+                draw_hero_boundbox(self.hero, self.surface, self.tiled_map.data.tileheight, 
+                                self.camera_x, self.camera_y, self.heightmap.left_offset, 
+                                self.heightmap.top_offset)
+                draw_entities_boundboxes(self.tiled_map.entities, self.surface, 
+                                        self.tiled_map.data.tileheight, self.camera_x, 
+                                        self.camera_y, self.heightmap.left_offset, 
+                                        self.heightmap.top_offset)
+
+            if self.is_warps_displayed:
+                draw_warps(self.surface, self.tiled_map.warps, self.heightmap, 
+                        self.tiled_map.data.tileheight, self.camera_x, self.camera_y, 
+                        self.room_number)
+
         # Draw UI on top of everything
         self.manager.draw_ui(self.surface)
 
@@ -1035,7 +1046,7 @@ class Game:
             # Render
             self.render()
             # Store current key states for next frame
-            self.prev_keys = {k: keys[k] for k in [pygame.K_d, pygame.K_LEFT, pygame.K_RIGHT, pygame.K_a]}
+            self.prev_keys = {k: keys[k] for k in [pygame.K_d, pygame.K_LEFT, pygame.K_RIGHT, pygame.K_a, pygame.K_F1, pygame.K_F2, pygame.K_F3]}
         
         pygame.quit()
         sys.exit()

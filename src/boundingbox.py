@@ -9,15 +9,18 @@ MARGIN: int = 2
 class BoundingBox:
     """Represents a 3D bounding box for collision detection"""
     
-    def __init__(self, world_pos: Vector3, height_in_tiles: int) -> None:
+    def __init__(self, world_pos: Vector3, height_in_tiles: float, size_in_tiles: float = 1.0) -> None:
         """Initialize bounding box
         
         Args:
             world_pos: Position in world coordinates (x, y, z)
-            height_in_tiles: Height of the entity in tiles (e.g., 1 for entities, 2 for hero)
+            height_in_tiles: Height of the entity in tiles (e.g., 1.0 for entities, 2.0 for hero)
+            size_in_tiles: Width and length of the entity in tiles (e.g., 2.0 for raft, 1.0 for crate)
         """
         self.world_pos: Vector3 = world_pos
-        self.height_in_tiles: int = height_in_tiles
+        self.height_in_tiles: float = height_in_tiles
+
+        self.size_in_tiles: float = size_in_tiles
     
     def get_bounding_box(self, tile_h: int) -> Tuple[float, float, float, float]:
         """Get bounding box in world coordinates with margin applied
@@ -30,8 +33,10 @@ class BoundingBox:
         """
         x = self.world_pos.x + MARGIN
         y = self.world_pos.y + MARGIN
-        width = tile_h - (MARGIN * 2)
-        height = tile_h - (MARGIN * 2)
+        # Use size_in_tiles to determine the actual bounding box dimensions
+        width = (tile_h * self.size_in_tiles) - (MARGIN * 2)
+        height = (tile_h * self.size_in_tiles) - (MARGIN * 2)
+        
         return (x, y, width, height)
     
     def get_corners_world(self, tile_h: int) -> Tuple[Tuple[float, float], ...]:
@@ -80,7 +85,7 @@ class BoundingBox:
             corners_iso.append((iso_x - camera_x, iso_y - camera_y))
         
         return corners_iso
-        
+    
     def get_center(self, tile_h: int) -> Tuple[float, float]:
         """Get the center position of the bounding box in world XY coordinates
         
