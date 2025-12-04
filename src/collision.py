@@ -54,6 +54,49 @@ def check_entity_collision_3d(moving_entity_bbox: Tuple[float, float, float, flo
     return z_collision
 
 
+def get_touching_entities(hero: Hero,
+                          entities: List[Entity],
+                          tile_h: int) -> List[Entity]:
+    """Get all entities currently touching the hero in 3D space
+    
+    This checks collision at the hero's current position without any movement.
+    Useful for detecting enemy attacks, trigger zones, etc.
+    
+    Args:
+        hero: The hero object
+        entities: List of entities to check collision against
+        tile_h: Tile height in pixels
+        
+    Returns:
+        List of entities currently in contact with the hero
+    """
+    hero_pos = hero.get_world_pos()
+    hero_z = hero_pos.z
+    hero_height = hero.HEIGHT * tile_h
+    hero_bbox = hero.get_bounding_box(tile_h)
+    
+    touching_entities: List[Entity] = []
+    
+    for entity in entities:
+        if entity is hero.grabbed_entity:
+            # Skip grabbed entity (it's supposed to be touching)
+            continue
+            
+        if check_entity_collision_3d(hero_bbox, hero_z, hero_height, entity, tile_h):
+            # Check if hero is above the entity (standing on top)
+            entity_top = entity.world_pos.z + entity.HEIGHT * tile_h
+            
+            # If hero's feet are significantly above the entity's top, 
+            # they're not really "touching" for interaction purposes
+            # (Add small tolerance for floating point precision)
+            if hero_z > entity_top + 1.0:
+                continue
+            
+            touching_entities.append(entity)
+    
+    return touching_entities
+
+
 def get_entity_top_at_position(entities: List[Entity],
                                x: float,
                                y: float,
@@ -114,7 +157,7 @@ def resolve_entity_collision(hero: Hero,
                             left_offset: int,
                             top_offset: int,
                             camera_x: float,
-                            camera_y: float) -> Tuple[float, float]:
+                            camera_y: float) -> Tuple[float, float, List[Entity]]:
     """Resolve XY collision between hero and entities by placing hero at edge of collision
     
     Only resolves horizontal (XY) collisions. Does not handle Z/gravity.
@@ -131,11 +174,15 @@ def resolve_entity_collision(hero: Hero,
         camera_y: Camera Y position
         
     Returns:
-        Tuple of (resolved_x, resolved_y) - adjusted position if collision detected
+        Tuple of (resolved_x, resolved_y, touched_entities)
+        - resolved_x, resolved_y: adjusted position if collision detected
+        - touched_entities: list of entities that were collided with
     """
     hero_pos = hero.get_world_pos()
     hero_z = hero_pos.z
     hero_height = hero.HEIGHT * tile_h
+    
+    touched_entities: List[Entity] = []
     
     # Create temporary position to test collision
     temp_pos = Vector3(new_x, new_y, hero_pos.z)
@@ -147,8 +194,15 @@ def resolve_entity_collision(hero: Hero,
     
     # Check collision with each entity
     for entity in entities:
+        if entity is hero.grabbed_entity:
+            # Skip grabbed entity
+            continue
+            
         if check_entity_collision_3d(proposed_bbox, hero_z, hero_height, entity, tile_h):
-            # Collision detected - check if hero is above the entity
+            # Collision detected
+            touched_entities.append(entity)
+            
+            # Check if hero is above the entity
             entity_top = entity.world_pos.z + entity.HEIGHT * tile_h
             
             # If hero's feet are above the entity's top, allow horizontal movement
@@ -199,7 +253,7 @@ def resolve_entity_collision(hero: Hero,
             proposed_bbox = hero.get_bounding_box(tile_h)
             hero.world_pos = hero_pos
     
-    return (new_x, new_y)
+    return (new_x, new_y, touched_entities)
 
 
 def can_move_to_position(hero: Hero,
@@ -233,6 +287,9 @@ def can_move_to_position(hero: Hero,
     
     # Check collision with each solid entity
     for entity in entities:
+        if entity is hero.grabbed_entity:
+            continue
+            
         if check_entity_collision_3d(proposed_bbox, hero_z, hero_height, entity, tile_h):
             # Check if hero is above the entity
             entity_top = entity.world_pos.z + entity.HEIGHT * tile_h
@@ -277,6 +334,9 @@ def get_entity_in_front_of_hero(hero: Hero,
     closest_distance: float = float('inf')
     
     for entity in entities:
+        if entity is hero.grabbed_entity:
+            continue
+            
         print(f"\nChecking entity: {entity.name} (class: {entity.entity_class})")
         print(f"  - no_pickup: {entity.no_pickup}")
         print(f"  - visible: {entity.visible}")

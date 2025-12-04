@@ -612,7 +612,7 @@ class Game:
             if moved:
                 # Resolve entity collisions in XY plane
                 # This only handles horizontal collision, not Z-axis (gravity handles that)
-                new_x, new_y = resolve_entity_collision(
+                new_x, new_y, touched_entities = resolve_entity_collision(
                     self.hero,
                     self.tiled_map.entities,
                     new_x,
@@ -623,6 +623,10 @@ class Game:
                     self.camera_x,
                     self.camera_y
                 )
+
+                # Then you can handle touched entities:
+                for entity in touched_entities:
+                    print(f"Touched entity: {entity.name}")
                 
                 self.hero.set_world_pos(
                     new_x, new_y, hero_pos.z,
