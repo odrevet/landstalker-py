@@ -278,4 +278,4 @@ class Entity:
     
     def __repr__(self) -> str:
         return (f"Entity(name='{self.name}', class='{self.entity_class}', "
-                f"pos=({self.x}, {self.y}, {self.z}), type={self.type})")
+                f"pos=({self.x}, {self.y}, {self.z}), type={self.type}),behaviour={self.behaviour}")

@@ -383,7 +383,7 @@ class Game:
                 self.center_camera_on_hero()
 
             self.start_fade(do_fall_warp)
-            return True
+            self.hero._world_pos.z =  self.tiled_map.data.properties['RoomZEnd'] * tile_h
 
         return False
 
