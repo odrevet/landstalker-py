@@ -136,6 +136,9 @@ class Game:
         # Center camera on hero initially
         self.center_camera_on_hero()
     
+    def on_entity_collids(self, entity):
+        print(f"On entity collids {entity.name} {entity.behaviour}")
+
     def fix_hero_spawn_position(self) -> None:
         """Fix hero position if spawned in invalid location"""
         tile_h: int = self.tiled_map.data.tileheight
@@ -430,7 +433,7 @@ class Game:
                                 entities_to_check,
                                 tile_h)
             if entity_standing_on is not None:
-                print(f"Walking on {entity_standing_on.name}")
+                self.on_entity_collids(entity_standing_on)
 
             entity_top = get_entity_top_at_position(
                 entities_to_check,
