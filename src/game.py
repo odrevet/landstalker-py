@@ -12,7 +12,7 @@ from utils import *
 from tiledmap import Tiledmap
 from heightmap import Heightmap, HeightmapCell
 from debug import draw_hero_boundbox, draw_heightmap, draw_warps, draw_entities_boundboxes
-from collision import (resolve_entity_collision, can_move_to_position, get_entity_top_at_position,
+from collision import (resolve_entity_collision, get_entity_top_at_position, check_collids_entity,
                       get_entity_in_front_of_hero, can_place_entity_at_position, get_position_in_front_of_hero, get_touching_entities)
 
 # Constants
@@ -609,9 +609,13 @@ class Game:
                     moved = True
             
             if moved:
+                entity = check_collids_entity(self.hero, new_x, new_y, self.tiled_map.entities, 16)
+                if entity is not None:
+                    print(f"Collids with {entity.name}")
+
                 # Resolve entity collisions in XY plane
                 # This only handles horizontal collision, not Z-axis (gravity handles that)
-                new_x, new_y, touched_entities = resolve_entity_collision(
+                new_x, new_y, touched_entity = resolve_entity_collision(
                     self.hero,
                     self.tiled_map.entities,
                     new_x,
@@ -622,10 +626,6 @@ class Game:
                     self.camera_x,
                     self.camera_y
                 )
-
-                # Then you can handle touched entities:
-                for entity in touched_entities:
-                    print(f"Touched entity: {entity.name}")
                 
                 self.hero.set_world_pos(
                     new_x, new_y, hero_pos.z,
@@ -1013,16 +1013,6 @@ class Game:
                 # Hide dialog elements
                 self.dialog_textbox.hide()
                 self.coord_dialog.hide()
-                
-                # Check for entities touching hero (for triggers, enemies, etc.)
-                touching = get_touching_entities(
-                    self.hero,
-                    self.tiled_map.entities,
-                    16
-                )
-
-                for entity in touching:
-                    print(f"-> {entity}")
 
                 # Normal gameplay controls
                 self.handle_camera_movement(keys)
@@ -1030,8 +1020,6 @@ class Game:
                 self.handle_room_change(keys)
                 self.apply_gravity()
                 self.handle_hero_movement(keys)
-
-
 
                 self.handle_jump(keys)
                 self.check_action(keys)
