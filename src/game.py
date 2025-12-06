@@ -19,7 +19,7 @@ from collision import (resolve_entity_collision, can_move_to_position, get_entit
 DISPLAY_HEIGHT: int = 224
 DISPLAY_WIDTH: int = 320
 CAMERA_SPEED: int = 5
-GRAVITY: float = 1.5
+GRAVITY: float = 2.5
 HERO_SPEED: float = 1.75
 HERO_MAX_JUMP: int = 24
 FPS: int = 60
