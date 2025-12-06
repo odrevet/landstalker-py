@@ -68,6 +68,7 @@ class Entity:
         self.frame_count: int = 1  # Number of frames
         self.current_frame: int = 0
         self.image: Optional[pygame.Surface] = None  # Current frame to display
+        self.sprite_missing: bool = False  # Flag to indicate missing sprite
         
         # Animation timing
         self.animation_speed: float = 0.1  # Seconds per frame
@@ -113,28 +114,26 @@ class Entity:
                     print(f"Loaded sprite sheet for {self.name}: {sprite_file}")
                 except (pygame.error, FileNotFoundError) as e:
                     print(f"Warning: Could not load sprite {sprite_file}: {e}")
-                    # Create placeholder
-                    placeholder = pygame.Surface((frame_width, 48), pygame.SRCALPHA)
-                    placeholder.fill((0, 255, 255, 128))  # Cyan placeholder
-                    Entity._sprite_cache[sprite_file] = placeholder
+                    # Mark sprite as missing instead of creating placeholder
+                    self.sprite_missing = True
+                    Entity._sprite_cache[sprite_file] = None
+                    return
             
             # Get the sprite sheet from cache
             self.sprite_sheet = Entity._sprite_cache[sprite_file]
+            
+            # Check if sprite was actually loaded
+            if self.sprite_sheet is None:
+                self.sprite_missing = True
+                return
             
             # Extract individual frames from the sprite sheet
             self._extract_frames()
             
         else:
-            # No sprite mapping for this entity class - create placeholder
-            cache_key = f"placeholder_{self.entity_class}"
-            if cache_key not in Entity._sprite_cache:
-                placeholder = pygame.Surface((32, 48), pygame.SRCALPHA)
-                placeholder.fill((255, 128, 0, 128))  # Orange placeholder for unknown
-                Entity._sprite_cache[cache_key] = placeholder
-            
-            self.sprite_sheet = Entity._sprite_cache[cache_key]
-            self.frames = [self.sprite_sheet]
-            self.image = self.frames[0]
+            # No sprite mapping for this entity class - mark as missing
+            print(f"Warning: No sprite mapping for entity: {self.name}")
+            self.sprite_missing = True
     
     def _extract_frames(self) -> None:
         """Extract individual frames from the sprite sheet"""
@@ -229,7 +228,8 @@ class Entity:
         Args:
             surface: Pygame surface to draw on
         """
-        if self.image and self.visible:
+        # Only draw sprite if it exists and is visible
+        if self.image and self.visible and not self.sprite_missing:
             surface.blit(self.image, self._screen_pos)
     
     def get_bounding_box(self, tile_h: int) -> Tuple[float, float, float, float]:

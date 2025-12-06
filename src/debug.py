@@ -131,7 +131,7 @@ def draw_heightmap(screen, heightmap, tile_height, camera_x, camera_y):
 #  DRAW BOUNDING BOX (GENERIC)
 # -------------------------------------------------------------
 def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y, 
-                  left_offset, top_offset, color=(50, 255, 50), label=None):
+                  left_offset, top_offset, color=(50, 255, 50)):
     """Draw an isometric bounding box using BoundingBox object.
     
     Args:
@@ -149,8 +149,8 @@ def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y,
     corners_iso = bbox.get_corners_iso(tile_height, left_offset, top_offset, camera_x, camera_y)
     
     # Get Z positions for top and bottom of bounding box
-    z_top = bbox.world_pos.z - bbox.height_in_tiles * tile_height - bbox.height_in_tiles * tile_height
-    z_bottom = bbox.world_pos.z - bbox.height_in_tiles * tile_height
+    z_bottom = bbox.world_pos.z - bbox.height_in_tiles * tile_height - bbox.height_in_tiles * tile_height
+    z_top = bbox.world_pos.z - bbox.height_in_tiles * tile_height
     
     # Create points for top rectangle (with Z offset)
     top_points = [
@@ -177,31 +177,6 @@ def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y,
     # Draw vertical edges connecting top and bottom
     for i in range(4):
         pygame.draw.line(screen, color, top_points[i], bottom_points[i], 1)
-    
-    # Draw label if provided
-    if label:
-        font = pygame.font.SysFont("Arial", 12)
-        text_surf = font.render(label, True, color)
-        # Position label above the top of the box
-        label_x = top_points[3][0] + 14
-        label_y = top_points[3][1] - 12
-        screen.blit(text_surf, (label_x, label_y))
-        
-        # Draw coordinates below label
-        tile_x = bbox.world_pos.x / tile_height
-        tile_y = bbox.world_pos.y / tile_height
-        tile_z = bbox.world_pos.z / tile_height
-
-        # Show size and height properties
-        props_text = f"size:{bbox.size_in_tiles:.1f} h:{bbox.height_in_tiles:.1f}"
-        props_surf = font.render(props_text, True, color)
-        screen.blit(props_surf, (label_x, label_y + 12))
-        
-        # Show tile coordinates
-        coord_text = f"({tile_x:.1f},{tile_y:.1f},{tile_z:.1f})"
-        coord_surf = font.render(coord_text, True, color)
-        screen.blit(coord_surf, (label_x, label_y + 24))
-
 
 # -------------------------------------------------------------
 #  DRAW HERO BOUNDING BOX
@@ -209,7 +184,7 @@ def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y,
 def draw_hero_boundbox(hero, screen, tile_height, camera_x, camera_y, left_offset, top_offset):
     """Draw hero's isometric bounding box."""
     draw_boundbox(hero.bbox, screen, tile_height, camera_x, camera_y, 
-                  left_offset, top_offset, color=(205, 205, 250), label="Hero")
+                  left_offset, top_offset, color=(205, 205, 250))
 
 
 # -------------------------------------------------------------
@@ -217,13 +192,9 @@ def draw_hero_boundbox(hero, screen, tile_height, camera_x, camera_y, left_offse
 # -------------------------------------------------------------
 def draw_entity_boundbox(entity, screen, tile_height, camera_x, camera_y, left_offset, top_offset):
     """Draw entity's isometric bounding box."""
-    if entity.bbox is None:
-        return
-    
     color = (200, 250, 255)
     draw_boundbox(entity.bbox, screen, tile_height, camera_x, camera_y, 
-                  left_offset, top_offset, color=color, label=entity.name
-)
+                  left_offset, top_offset, color=color)
 
 
 # -------------------------------------------------------------
@@ -235,6 +206,34 @@ def draw_entities_boundboxes(entities: List, screen, tile_height, camera_x, came
     for entity in entities:
         draw_entity_boundbox(entity, screen, tile_height, camera_x, camera_y, 
                             left_offset, top_offset)
+
+# -------------------------------------------------------------
+#  DRAW LABEL
+# -------------------------------------------------------------
+def draw_label(label, color, screen, draw_coords=False, draw_size=False):
+    font = pygame.font.SysFont("Arial", 12)
+    text_surf = font.render(label, True, color)
+
+    # Position label above the top of the box
+    label_x = top_points[3][0] + 14
+    label_y = top_points[3][1] - 12
+    screen.blit(text_surf, (label_x, label_y))
+    
+    if draw_size:
+        # Show size and height properties
+        props_text = f"size:{bbox.size_in_tiles:.1f} h:{bbox.height_in_tiles:.1f}"
+        props_surf = font.render(props_text, True, color)
+        screen.blit(props_surf, (label_x, label_y + 12))
+
+    if draw_coords:
+        # Draw coordinates below label
+        tile_x = bbox.world_pos.x / tile_height
+        tile_y = bbox.world_pos.y / tile_height
+        tile_z = bbox.world_pos.z / tile_height
+        # Show tile coordinates
+        coord_text = f"({tile_x:.1f},{tile_y:.1f},{tile_z:.1f})"
+        coord_surf = font.render(coord_text, True, color)
+        screen.blit(coord_surf, (label_x, label_y + 24))
 
 
 # -------------------------------------------------------------
