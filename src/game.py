@@ -15,6 +15,7 @@ from heightmap import Heightmap, HeightmapCell
 from debug import draw_hero_boundbox, draw_heightmap, draw_warps, draw_entities_boundboxes
 from collision import (resolve_entity_collision, get_entity_top_at_position, check_collids_entity, get_entity_hero_is_standing_on,
                       get_entity_in_front_of_hero, can_place_entity_at_position, get_position_in_front_of_hero, get_touching_entities)
+from script_commands import run_entity_script
 
 # Constants
 DISPLAY_HEIGHT: int = 224
@@ -139,7 +140,7 @@ class Game:
     
     def on_entity_collids(self, entity):
         print(f"On entity collids {entity.name} {entity.behaviour}")
-        self.run_entity_script(entity.behaviour)
+        run_entity_script(entity, entity.behaviour)
 
     def fix_hero_spawn_position(self) -> None:
         """Fix hero position if spawned in invalid location"""
@@ -888,72 +889,6 @@ class Game:
             return {}
         except Exception as e:
             print(f"Error loading dialogs: {e}")
-            import traceback
-            traceback.print_exc()
-            return {}
-
-    def run_entity_script(self, id: int) -> dict:
-        """Load and parse entity script commands from YAML file
-        
-        Args:
-            id: Behavior ID to load
-            
-        Returns:
-            Dictionary containing the parsed script data
-        """
-        filepath = f"data/scripts/behaviour{id}.yaml"
-        
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                import yaml
-                data = yaml.safe_load(f)
-            
-            if not data:
-                print(f"Warning: Empty script file at {filepath}")
-                return {}
-            
-            script_commands = data.get('Script', [])
-            
-            if not script_commands:
-                print(f"Warning: No 'Script' key found in {filepath}")
-                return data
-            
-            print(f"\n=== Executing Behaviour {id} ===")
-            print(f"Name: {data.get('Name', 'Unknown')}")
-            print(f"Total Commands: {len(script_commands)}\n")
-            
-            # Loop through each command
-            for cmd_index, command in enumerate(script_commands, start=1):
-                print(f"Command #{cmd_index}:")
-                
-                if isinstance(command, str):
-                    # Simple command (e.g., "Pause4s", "TurnCW")
-                    print(f"  {command}")
-                
-                elif isinstance(command, dict):
-                    # Complex command with parameters (e.g., MoveRelative, Pause)
-                    for cmd_name, cmd_params in command.items():
-                        print(f"  {cmd_name}:")
-                        
-                        if isinstance(cmd_params, dict):
-                            # Command has named parameters
-                            for param_name, param_value in cmd_params.items():
-                                print(f"    {param_name}: {param_value}")
-                        else:
-                            # Command has a single value
-                            print(f"    {cmd_params}")
-                
-                print()  # Empty line between commands
-            
-            print(f"=== End of Behaviour {id} ===\n")
-            
-            return data
-            
-        except FileNotFoundError:
-            print(f"Warning: entity script file not found at {filepath}")
-            return {}
-        except Exception as e:
-            print(f"Error loading script: {e}")
             import traceback
             traceback.print_exc()
             return {}
