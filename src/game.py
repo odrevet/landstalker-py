@@ -12,7 +12,7 @@ from utils import *
 from tiledmap import Tiledmap
 from heightmap import Heightmap, HeightmapCell
 from debug import draw_hero_boundbox, draw_heightmap, draw_warps, draw_entities_boundboxes
-from collision import (resolve_entity_collision, get_entity_top_at_position, check_collids_entity,
+from collision import (resolve_entity_collision, get_entity_top_at_position, check_collids_entity, get_entity_hero_is_standing_on,
                       get_entity_in_front_of_hero, can_place_entity_at_position, get_position_in_front_of_hero, get_touching_entities)
 
 # Constants
@@ -424,6 +424,14 @@ class Game:
             entities_to_check = [e for e in self.tiled_map.entities 
                                if e is not self.hero.grabbed_entity]
             
+
+            entity_standing_on = get_entity_hero_is_standing_on(
+                                self.hero,
+                                entities_to_check,
+                                tile_h)
+            if entity_standing_on is not None:
+                print(f"Walking on {entity_standing_on.name}")
+
             entity_top = get_entity_top_at_position(
                 entities_to_check,
                 hero_x,

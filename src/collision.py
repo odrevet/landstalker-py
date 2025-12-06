@@ -194,7 +194,60 @@ def get_entity_top_at_position(entities: List[Entity],
     
     return highest_top
 
-
+def get_entity_hero_is_standing_on(hero: Hero,
+                                   entities: List[Entity],
+                                   tile_h: int) -> Optional[Entity]:
+    """Get the entity that the hero is currently standing on
+    
+    This checks which entity surface the hero is directly on top of.
+    
+    Args:
+        hero: The hero object
+        entities: List of entities to check
+        tile_h: Tile height in pixels
+        
+    Returns:
+        Entity hero is standing on, or None if not on any entity
+    """
+    hero_pos = hero.get_world_pos()
+    hero_bbox = hero.get_bounding_box(tile_h)
+    check_x, check_y, check_width, check_height = hero_bbox
+    
+    highest_entity: Optional[Entity] = None
+    highest_top: Optional[float] = None
+    
+    for entity in entities:
+        # Skip non-solid, invisible, and grabbed entities
+        if not entity.solid or not entity.visible or entity is hero.grabbed_entity:
+            continue
+        
+        # Get entity bounding box
+        entity_x = entity.bbox.world_pos.x + MARGIN
+        entity_y = entity.bbox.world_pos.y + MARGIN
+        entity_w = (tile_h * entity.bbox.size_in_tiles) - (MARGIN * 2)
+        entity_h = (tile_h * entity.bbox.size_in_tiles) - (MARGIN * 2)
+        
+        # Check XY overlap
+        xy_overlap = (check_x < entity_x + entity_w and
+                     check_x + check_width > entity_x and
+                     check_y < entity_y + entity_h and
+                     check_y + check_height > entity_y)
+        
+        if not xy_overlap:
+            continue
+        
+        # Calculate entity top Z position
+        entity_top = entity.bbox.world_pos.z + (entity.bbox.height_in_tiles * tile_h)
+        
+        # Check if hero is standing on this entity (hero's feet are at entity's top)
+        # Allow small tolerance for floating point precision
+        if abs(hero_pos.z - entity_top) <= 1.0:
+            if highest_top is None or entity_top > highest_top:
+                highest_top = entity_top
+                highest_entity = entity
+    
+    return highest_entity
+    
 def get_position_in_front_of_hero(hero: Hero, tile_h: int) -> Tuple[float, float]:
     """Get the position one tile in front of the hero based on facing direction
     
