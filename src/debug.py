@@ -149,8 +149,8 @@ def draw_boundbox(bbox: BoundingBox, screen, tile_height, camera_x, camera_y,
     corners_iso = bbox.get_corners_iso(tile_height, left_offset, top_offset, camera_x, camera_y)
     
     # Get Z positions for top and bottom of bounding box
-    z_bottom = bbox.world_pos.z - bbox.height_in_tiles * tile_height - bbox.height_in_tiles * tile_height
-    z_top = bbox.world_pos.z - bbox.height_in_tiles * tile_height
+    z_bottom = bbox.world_pos.z - 32
+    z_top = bbox.world_pos.z - bbox.height_in_tiles * tile_height  - 32
     
     # Create points for top rectangle (with Z offset)
     top_points = [
