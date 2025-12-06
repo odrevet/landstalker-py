@@ -624,8 +624,8 @@ class Game:
                 )
 
                 # Then you can handle touched entities:
-                #for entity in touched_entities:
-                #    print(f"Touched entity: {entity.name}")
+                for entity in touched_entities:
+                    print(f"Touched entity: {entity.name}")
                 
                 self.hero.set_world_pos(
                     new_x, new_y, hero_pos.z,
@@ -1014,14 +1014,6 @@ class Game:
                 self.dialog_textbox.hide()
                 self.coord_dialog.hide()
                 
-                # Normal gameplay controls
-                self.handle_camera_movement(keys)
-                self.handle_debug_toggles(keys)
-                self.handle_room_change(keys)
-                if not keys[pygame.K_LSHIFT]:
-                    self.apply_gravity()
-                self.handle_hero_movement(keys)
-
                 # Check for entities touching hero (for triggers, enemies, etc.)
                 touching = get_touching_entities(
                     self.hero,
@@ -1031,6 +1023,15 @@ class Game:
 
                 for entity in touching:
                     print(f"-> {entity}")
+
+                # Normal gameplay controls
+                self.handle_camera_movement(keys)
+                self.handle_debug_toggles(keys)
+                self.handle_room_change(keys)
+                self.apply_gravity()
+                self.handle_hero_movement(keys)
+
+
 
                 self.handle_jump(keys)
                 self.check_action(keys)
