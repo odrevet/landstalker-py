@@ -8,37 +8,29 @@ from heightmap import Heightmap, HeightmapCell
 MARGIN: int = 2
 
 
-def check_entity_collision_3d(moving_entity_world_pos: Vector3,
-                              target_entity_world_pos: Vector3,
-                              moving_entity_height: float,
-                              target_entity_height: float,
-                              moving_entity_size: float,
-                              target_entity_size: float,
+def check_entity_collision_3d(moving_bbox,
+                              target_bbox,
                               tile_h: int) -> bool:
     """Check if two entities collide in 3D space
     
     Args:
-        moving_entity_world_pos: World position (Vector3) of moving entity
-        target_entity_world_pos: World position (Vector3) of target entity
-        moving_entity_height: Height of moving entity in tiles
-        target_entity_height: Height of target entity in tiles
-        moving_entity_size: Size of moving entity in tiles
-        target_entity_size: Size of entity in tiles
+        moving_bbox: BoundingBox of moving entity
+        target_bbox: BoundingBox of target entity
         tile_h: Tile height in pixels
         
     Returns:
         True if collision detected, False otherwise
     """
     # Calculate bounding boxes from world positions
-    me_x = moving_entity_world_pos.x + MARGIN
-    me_y = moving_entity_world_pos.y + MARGIN
-    me_w = (tile_h * moving_entity_size) - (MARGIN * 2)
-    me_h = (tile_h * moving_entity_size) - (MARGIN * 2)
+    me_x = moving_bbox.world_pos.x + MARGIN
+    me_y = moving_bbox.world_pos.y + MARGIN
+    me_w = (tile_h * moving_bbox.size_in_tiles) - (MARGIN * 2)
+    me_h = (tile_h * moving_bbox.size_in_tiles) - (MARGIN * 2)
     
-    te_x = target_entity_world_pos.x + MARGIN
-    te_y = target_entity_world_pos.y + MARGIN
-    te_w = (tile_h * target_entity_size) - (MARGIN * 2)
-    te_h = (tile_h * target_entity_size) - (MARGIN * 2)
+    te_x = target_bbox.world_pos.x + MARGIN
+    te_y = target_bbox.world_pos.y + MARGIN
+    te_w = (tile_h * target_bbox.size_in_tiles) - (MARGIN * 2)
+    te_h = (tile_h * target_bbox.size_in_tiles) - (MARGIN * 2)
     
     # Check XY plane collision (AABB)
     xy_collision = (me_x < te_x + te_w and
@@ -50,10 +42,10 @@ def check_entity_collision_3d(moving_entity_world_pos: Vector3,
         return False
     
     # Check Z axis collision
-    moving_z = moving_entity_world_pos.z
-    target_z = target_entity_world_pos.z
-    moving_z_height = moving_entity_height * tile_h
-    target_z_height = target_entity_height * tile_h
+    moving_z = moving_bbox.world_pos.z
+    target_z = target_bbox.world_pos.z
+    moving_z_height = moving_bbox.height_in_tiles * tile_h
+    target_z_height = target_bbox.height_in_tiles * tile_h
     
     z_collision = (moving_z < target_z + target_z_height and
                    moving_z + moving_z_height > target_z)
@@ -66,7 +58,7 @@ def check_collids_entity(hero: Hero,
                         y: float,
                         entities: List[Entity],
                         tile_h: int) -> Optional[Entity]:
-    """Check if hero can move to position without colliding with solid entities
+    """Check if hero collides with any entity at the given position
     
     Args:
         hero: The hero object
@@ -76,25 +68,22 @@ def check_collids_entity(hero: Hero,
         tile_h: Tile height in pixels
         
     Returns:
-        True if position is valid (no collisions), False otherwise
+        Entity that collides, or None if no collision
     """
-    hero_pos = hero.get_world_pos()
-    hero_z = hero_pos.z
+    from boundingbox import BoundingBox
     
-    # Create temporary position for collision check
-    temp_pos = Vector3(x, y, hero_z)
+    hero_pos = hero.get_world_pos()
+    
+    # Create temporary bounding box at new position
+    temp_bbox = BoundingBox(
+        Vector3(x, y, hero_pos.z),
+        hero.bbox.height_in_tiles,
+        hero.bbox.size_in_tiles
+    )
     
     for entity in entities:
         # Check 3D collision
-        if check_entity_collision_3d(
-            temp_pos,
-            entity.bbox.world_pos,
-            hero.bbox.height_in_tiles,
-            entity.bbox.height_in_tiles,
-            hero.bbox.size_in_tiles,
-            entity.bbox.size_in_tiles,
-            tile_h
-        ):
+        if check_entity_collision_3d(temp_bbox, entity.bbox, tile_h):
             return entity
     
     return None
@@ -306,6 +295,8 @@ def can_place_entity_at_position(entity: Entity,
     Returns:
         True if entity can be placed, False otherwise
     """
+    from boundingbox import BoundingBox
+    
     # Check if position is in bounds
     tile_x = int(x // tile_h)
     tile_y = int(y // tile_h)
@@ -325,23 +316,19 @@ def can_place_entity_at_position(entity: Entity,
     if abs(z - terrain_z) > 1.0:  # Small tolerance for floating point
         return False
     
-    # Create temporary position for collision check
-    temp_pos = Vector3(x, y, z)
+    # Create temporary bounding box for collision check
+    temp_bbox = BoundingBox(
+        Vector3(x, y, z),
+        entity.bbox.height_in_tiles,
+        entity.bbox.size_in_tiles
+    )
     
     # Check collision with other entities
     for other in other_entities:
         if other is entity or not other.solid or not other.visible:
             continue
         
-        if check_entity_collision_3d(
-            temp_pos,
-            other.bbox.world_pos,
-            entity.bbox.height_in_tiles,
-            other.bbox.height_in_tiles,
-            entity.bbox.size_in_tiles,
-            other.bbox.size_in_tiles,
-            tile_h
-        ):
+        if check_entity_collision_3d(temp_bbox, other.bbox, tile_h):
             return False
     
     return True
@@ -370,16 +357,11 @@ def get_touching_entities(hero: Hero,
             # Skip grabbed entity (it's supposed to be touching)
             continue
         
+        if not entity.visible:
+            continue
+        
         # Check 3D collision
-        if check_entity_collision_3d(
-            hero.bbox.world_pos,
-            entity.bbox.world_pos,
-            hero.bbox.height_in_tiles,
-            entity.bbox.height_in_tiles,
-            hero.bbox.size_in_tiles,
-            entity.bbox.size_in_tiles,
-            tile_h
-        ):
+        if check_entity_collision_3d(hero.bbox, entity.bbox, tile_h):
             touching_entities.append(entity)
     
     return touching_entities
