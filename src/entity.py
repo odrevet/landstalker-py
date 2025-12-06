@@ -299,4 +299,4 @@ class Entity:
         return (f"Entity(name='{self.name}', class='{self.entity_class}', "
                 f"pos=({self.x}, {self.y}, {self.z}), type={self.type}, "
                 f"size={self.size}, height={self.height}, volume={self.volume}, "
-                f"behaviour={self.behaviour}, solid={self.solid})")
+                f"behaviour={self.behaviour}, solid={self.solid} visible={self.visible})")
