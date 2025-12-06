@@ -3,6 +3,8 @@ import pygame
 from pygame.math import Vector2, Vector3
 from boundingbox import BoundingBox
 from utils import cartesian_to_iso
+import yaml
+import os
 
 
 class Entity:
@@ -11,6 +13,17 @@ class Entity:
     # Class-level sprite cache - shared across all instances
     _sprite_cache: ClassVar[Dict[str, pygame.Surface]] = {}
     
+    # Sprite properties cache - loaded from YAML files
+    _sprite_properties_cache: ClassVar[Dict[int, Dict[str, Any]]] = {}
+    
+    # Sprite mapping: entity_name -> sprite_id
+    _sprite_id_map: ClassVar[Dict[str, Optional[int]]] = {
+        'Nigel': 0,
+        'Raft': 92,
+        'Crate': None,
+        'Chest': None,
+    }
+    
     # Sprite mapping: entity_class -> (sprite filename, frame_width, frame_count)
     _sprite_map: ClassVar[Dict[str, Tuple[str, int, int]]] = {
         'Crate': ('data/sprites/SpriteGfx091Anim000.png', 32, 1),
@@ -18,12 +31,69 @@ class Entity:
         'Raft': ('data/sprites/SpriteGfx092Anim000.png', 64, 1),
     }
     
-    # Physical properties mapping: entity_name -> (size, height, volume)
-    _physical_properties: ClassVar[Dict[str, Tuple[float, float, float]]] = {
-        'Raft': (2.0, 0.5, 2.5),
-        'Crate': (1.0, 1.0, 1.0),
-        'Chest': (1.0, 1.0, 1.0),
-    }
+    # Default hitbox values if YAML properties are not available
+    _default_hitbox: ClassVar[Tuple[float, float, float]] = (1.0, 1.0, 1.0)
+    
+    @classmethod
+    def _load_sprite_properties(cls, sprite_id: int) -> Optional[Dict[str, Any]]:
+        """Load sprite properties from YAML file
+        
+        Args:
+            sprite_id: The sprite ID to load properties for
+            
+        Returns:
+            Dictionary of sprite properties or None if not found
+        """
+        # Check cache first
+        if sprite_id in cls._sprite_properties_cache:
+            return cls._sprite_properties_cache[sprite_id]
+        
+        # Construct YAML filename
+        yaml_file = f"data/sprites/Sprite{sprite_id:03d}Properties.yaml"
+        
+        if not os.path.exists(yaml_file):
+            print(f"Warning: Sprite properties file not found: {yaml_file}")
+            cls._sprite_properties_cache[sprite_id] = None
+            return None
+        
+        try:
+            with open(yaml_file, 'r') as f:
+                properties = yaml.safe_load(f)
+                cls._sprite_properties_cache[sprite_id] = properties
+                print(f"Loaded sprite properties for ID {sprite_id}: {properties.get('Name', 'Unknown')}")
+                return properties
+        except Exception as e:
+            print(f"Error loading sprite properties from {yaml_file}: {e}")
+            cls._sprite_properties_cache[sprite_id] = None
+            return None
+    
+    @classmethod
+    def _get_hitbox_from_yaml(cls, entity_name: str) -> Tuple[float, float, float]:
+        """Get hitbox properties from YAML file based on entity name
+        
+        Args:
+            entity_name: Name of the entity
+            
+        Returns:
+            Tuple of (width, height, volume), defaults to (1.0, 1.0, 1.0) if not found
+        """
+        sprite_id = cls._sprite_id_map.get(entity_name)
+        if sprite_id is None:
+            return cls._default_hitbox
+        
+        properties = cls._load_sprite_properties(sprite_id)
+        if properties is None:
+            return cls._default_hitbox
+        
+        hitbox = properties.get('Hitbox')
+        if hitbox is None:
+            return cls._default_hitbox
+        
+        width = hitbox.get('Width', 1.0)
+        height = hitbox.get('Height', 1.0)
+        volume = hitbox.get('Volume', 1.0)
+        
+        return (width, height, volume)
     
     def __init__(self, data: Dict[str, Any]) -> None:
         """Initialize entity from TMX object data
@@ -46,10 +116,13 @@ class Entity:
         self._screen_pos: Vector2 = Vector2()
         
         # Physical properties (size in tiles, height in tiles, volume)
-        physical_props = self._physical_properties.get(self.name, (1.0, 1.0, 1.0))
-        self.size: float = physical_props[0]  # Width and length in tiles
-        self.height: float = physical_props[1]  # Height in tiles
-        self.volume: float = physical_props[2]  # Volume
+        # Load from YAML, default to (1.0, 1.0, 1.0) if not available
+        hitbox_props = self._get_hitbox_from_yaml(self.name)
+        print(f"Hitbox for {self.name}: {hitbox_props}")
+        
+        self.size: float = hitbox_props[0]  # Width and length in tiles
+        self.height: float = hitbox_props[1]  # Height in tiles
+        self.volume: float = hitbox_props[2]  # Volume
         
         # Height in tiles (entities are 1 tile tall by default, but can be overridden)
         self.HEIGHT: int = int(self.height)
