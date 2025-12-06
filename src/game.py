@@ -2,6 +2,7 @@ from pygame.math import Vector3
 import sys
 import argparse
 from typing import List, Tuple, Optional, Callable
+import yaml
 
 import pygame
 import pygame_gui
@@ -138,6 +139,7 @@ class Game:
     
     def on_entity_collids(self, entity):
         print(f"On entity collids {entity.name} {entity.behaviour}")
+        self.run_entity_script(entity.behaviour)
 
     def fix_hero_spawn_position(self) -> None:
         """Fix hero position if spawned in invalid location"""
@@ -849,41 +851,58 @@ class Game:
 
     def load_main_scripts(self, filepath: str) -> dict:
         """Load dialog data from YAML file"""
-        import yaml
         import re
         
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            # Parse dialogs into a dictionary indexed by ID
-            dialogs = {}
+            # Parse script into a dictionary indexed by ID
+            scripts = {}
             
-            # Split by dialog sections (look for # ID: comments)
+            # Split by script sections (look for # ID: comments)
             sections = re.split(r'# ID:\s*(\d+)', content)
             
             # sections[0] is content before first ID (usually empty)
-            # sections[1] is first ID, sections[2] is first dialog content
-            # sections[3] is second ID, sections[4] is second dialog content, etc.
+            # sections[1] is first ID, sections[2] is first script content
+            # sections[3] is second ID, sections[4] is second script content, etc.
             for i in range(1, len(sections), 2):
                 if i + 1 < len(sections):
-                    dialog_id = int(sections[i].strip())
-                    dialog_content = sections[i + 1]
+                    script_id = int(sections[i].strip())
+                    script_content = sections[i + 1]
                     
-                    # Parse the YAML content for this dialog
+                    # Parse the YAML content for this script
                     try:
-                        parsed = yaml.safe_load(dialog_content)
+                        parsed = yaml.safe_load(script_content)
                         if parsed:
-                            dialogs[dialog_id] = parsed if isinstance(parsed, list) else [parsed]
+                            scripts[script_id] = parsed if isinstance(parsed, list) else [parsed]
                     except yaml.YAMLError:
-                        # Skip malformed dialog sections
+                        # Skip malformed script sections
                         continue
             
-            print(f"Loaded {len(dialogs)} dialogs from {filepath}")
-            return dialogs
+            print(f"Loaded {len(scripts)} dialogs from {filepath}")
+            return scripts
             
         except FileNotFoundError:
             print(f"Warning: Dialog file not found at {filepath}")
+            return {}
+        except Exception as e:
+            print(f"Error loading dialogs: {e}")
+            import traceback
+            traceback.print_exc()
+            return {}
+
+    def run_entity_script(self, id: int) -> dict:
+        """Load dialog data from YAML file"""        
+        filepath = f"data/scripts/behaviour{id}.yaml"
+        try:
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+            
+            print(content)
+            
+        except FileNotFoundError:
+            print(f"Warning: entity script file not found at {filepath}")
             return {}
         except Exception as e:
             print(f"Error loading dialogs: {e}")
