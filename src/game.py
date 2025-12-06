@@ -893,19 +893,67 @@ class Game:
             return {}
 
     def run_entity_script(self, id: int) -> dict:
-        """Load dialog data from YAML file"""        
+        """Load and parse entity script commands from YAML file
+        
+        Args:
+            id: Behavior ID to load
+            
+        Returns:
+            Dictionary containing the parsed script data
+        """
         filepath = f"data/scripts/behaviour{id}.yaml"
+        
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
-                content = f.read()
+                import yaml
+                data = yaml.safe_load(f)
             
-            print(content)
+            if not data:
+                print(f"Warning: Empty script file at {filepath}")
+                return {}
+            
+            script_commands = data.get('Script', [])
+            
+            if not script_commands:
+                print(f"Warning: No 'Script' key found in {filepath}")
+                return data
+            
+            print(f"\n=== Executing Behaviour {id} ===")
+            print(f"Name: {data.get('Name', 'Unknown')}")
+            print(f"Total Commands: {len(script_commands)}\n")
+            
+            # Loop through each command
+            for cmd_index, command in enumerate(script_commands, start=1):
+                print(f"Command #{cmd_index}:")
+                
+                if isinstance(command, str):
+                    # Simple command (e.g., "Pause4s", "TurnCW")
+                    print(f"  {command}")
+                
+                elif isinstance(command, dict):
+                    # Complex command with parameters (e.g., MoveRelative, Pause)
+                    for cmd_name, cmd_params in command.items():
+                        print(f"  {cmd_name}:")
+                        
+                        if isinstance(cmd_params, dict):
+                            # Command has named parameters
+                            for param_name, param_value in cmd_params.items():
+                                print(f"    {param_name}: {param_value}")
+                        else:
+                            # Command has a single value
+                            print(f"    {cmd_params}")
+                
+                print()  # Empty line between commands
+            
+            print(f"=== End of Behaviour {id} ===\n")
+            
+            return data
             
         except FileNotFoundError:
             print(f"Warning: entity script file not found at {filepath}")
             return {}
         except Exception as e:
-            print(f"Error loading dialogs: {e}")
+            print(f"Error loading script: {e}")
             import traceback
             traceback.print_exc()
             return {}
